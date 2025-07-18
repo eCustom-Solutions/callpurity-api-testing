@@ -1,8 +1,8 @@
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  expiresAt: string;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  expires_at: number;
 }
 
 export interface LoginRequest {

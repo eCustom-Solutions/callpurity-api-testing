@@ -55,7 +55,7 @@ import { CallPuritySDK } from './client.js';
 
 // Login to get access token
 const authResponse = await CallPuritySDK.auth.login('user@example.com', 'password');
-console.log('Access token:', authResponse.accessToken);
+console.log('Access token:', authResponse.access_token);
 
 // List all accounts
 const accounts = await CallPuritySDK.accounts.list();
@@ -136,6 +136,16 @@ npm run dev
 
 #### `auth.login(email: string, password: string): Promise<AuthResponse>`
 Authenticate with email and password. Returns access token, refresh token, and expiration information.
+
+**Response structure:**
+```typescript
+{
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  expires_at: number;
+}
+```
 
 #### `auth.refresh(refreshToken: string): Promise<AuthResponse>`
 Refresh the access token using a refresh token.

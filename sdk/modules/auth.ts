@@ -10,7 +10,7 @@ export const createAuthModule = (client: AxiosInstance) => ({
     } as LoginRequest);
     
     const authData = response.data;
-    setAccessToken(authData.accessToken);
+    setAccessToken(authData.access_token);
     
     return authData;
   },
@@ -21,7 +21,7 @@ export const createAuthModule = (client: AxiosInstance) => ({
     } as RefreshRequest);
     
     const authData = response.data;
-    setAccessToken(authData.accessToken);
+    setAccessToken(authData.access_token);
     
     return authData;
   },
