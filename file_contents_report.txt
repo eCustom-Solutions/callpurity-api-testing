@@ -1,0 +1,117 @@
+README.md
+---------
+# CallPurity API Testing
+
+This project contains a modular CallPurity SDK for API testing and development.
+
+## Project Structure
+
+- `sdk/` - The main CallPurity SDK implementation
+  - `modules/` - SDK modules (currently empty)
+  - `test/` - Test files (currently empty)
+  - `client.ts` - Main client implementation
+  - `config.ts` - Configuration and environment setup
+  - `index.ts` - SDK entry point
+- `prompts/` - Development prompts and documentation
+  - `01_environment-setup.txt` - Environment setup instructions
+  - `02_sdk-generation.txt` - SDK generation instructions (to be filled)
+
+## Getting Started
+
+1. Navigate to the SDK directory: `cd sdk`
+2. Install dependencies: `npm install`
+3. Run the development server: `npm run dev`
+4. Build the project: `npm run build`
+
+
+file_contents_report.txt
+------------------------
+
+
+sdk/README.md
+-------------
+# CallPurity SDK
+
+## Overview
+TypeScript SDK for the CallPurity API.
+
+## Installation
+\`\`\`bash
+npm install
+\`\`\`
+
+## Usage
+\`\`\`bash
+npm run dev
+\`\`\`
+
+## Environment
+Configure your environment variables in the \`.env\` file.
+
+## License
+MIT
+
+
+sdk/client.ts
+-------------
+// Placeholder for CallPurity client
+export {};
+
+
+sdk/index.ts
+------------
+console.log("CallPurity SDK scaffold ready");
+
+
+sdk/config.ts
+-------------
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const API_BASE_URL = process.env.API_BASE_URL || "https://api.callpurity.com/v1";
+
+
+prompts/01_environment-setup.txt
+--------------------------------
+
+
+prompts/02_sdk-generation.txt
+-----------------------------
+
+
+sdk/dist/client.js
+------------------
+export {};
+
+
+sdk/dist/config.js
+------------------
+import dotenv from 'dotenv';
+dotenv.config();
+export const API_BASE_URL = process.env.API_BASE_URL || "https://api.callpurity.com/v1";
+
+
+FULL DIRECTORY STRUCTURE
+========================
+
+README.md
+file_contents_report.txt
+prompts/
+    01_environment-setup.txt
+    02_sdk-generation.txt
+sdk/
+    README.md
+    client.ts
+    config.ts
+    dist/
+    index.ts
+    modules/
+    test/
+    dist/
+        client.js
+        config.js
+    modules/
+    test/
+
+
