@@ -50,7 +50,7 @@ This project contains a complete, production-ready CallPurity SDK for API testin
    ```
    EMAIL=your-email@example.com
    PASSWORD=your-password
-   API_BASE_URL=https://api.callpurity.com/v1
+   API_BASE_URL=https://api.callpurity.com/latest
    ```
 4. Run tests: `npm test`
 5. Build the project: `npm run build`

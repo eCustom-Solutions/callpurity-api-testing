@@ -43,7 +43,7 @@ Create a `.env` file in the SDK directory:
 ```env
 EMAIL=your-email@example.com
 PASSWORD=your-password
-API_BASE_URL=https://api.callpurity.com/v1
+API_BASE_URL=https://api.callpurity.com/latest
 ```
 
 ## Usage
