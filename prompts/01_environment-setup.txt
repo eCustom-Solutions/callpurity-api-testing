@@ -1,0 +1,85 @@
+01_environment-setup.txt
+------------------------
+
+You are an autonomous dev-ops assistant. Your sole task in this run is to **initialize a clean TypeScript workspace for a modular CallPurity SDK**, without writing any SDK logic yet.  Follow the requirements below exactly.  When you finish, the project must build with `npm run build` and run with `npm run dev`.
+
+────────────────────────────────────────────────
+REQUIREMENTS
+────────────────────────────────────────────────
+
+1. **Root path**  
+   Work inside the current directory, creating the layout:
+
+   callpurity-api-testing/
+   ├── sdk/
+   │   ├── modules/                # (empty for now)
+   │   ├── test/                   # (empty for now)
+   │   ├── client.ts               # placeholder file
+   │   ├── config.ts               # placeholder file
+   │   ├── index.ts                # placeholder file that prints “SDK scaffold ready”
+   │   ├── .env                    # placeholder, git-ignored
+   │   ├── .gitignore
+   │   ├── tsconfig.json
+   │   ├── package.json
+   │   └── README.md
+   ├── prompts/
+   │   ├── 01_environment-setup.txt  # (this file)
+   │   └── 02_sdk-generation.txt     # will be filled later, leave blank
+   └── README.md
+
+2. **Initialize git (if not already) and add** the remote later by hand or via GitHub CLI (not part of this prompt).
+
+3. **.gitignore** (sdk/.gitignore) must at least contain:
+   node_modules/
+   dist/
+   .env
+
+4. **TypeScript config (sdk/tsconfig.json)**  
+   - "target": "ES2020"  
+   - "module": "ESNext"  
+   - "moduleResolution": "node"  
+   - "strict": true  
+   - "esModuleInterop": true  
+   - "outDir": "dist"  
+   - "rootDir": "."  
+   - "include": ["**/*.ts"]
+
+5. **package.json** (sdk/package.json) must include:
+   - `"type": "module"`
+   - npm scripts:
+     - `"build": "tsc"`
+     - `"dev": "ts-node index.ts"`
+     - `"test": "echo \"no tests yet\" && exit 0"`
+   - dependencies: `"axios"`, `"dotenv"`
+   - devDependencies: `"typescript"`, `"ts-node"`, `"@types/node"`
+
+6. **Placeholder source files**
+   - sdk/client.ts → empty export for now.
+   - sdk/config.ts → loads `dotenv.config()` and exports `API_BASE_URL` from `process.env` with a fallback of `"https://api.callpurity.com/v1"`.
+   - sdk/index.ts → `console.log("CallPurity SDK scaffold ready");`
+   - sdk/modules/, sdk/test/ stay empty.
+
+7. **README.md** files  
+   - **root README.md**: project overview, explains folders (`sdk/`, `prompts/`).
+   - **sdk/README.md**: placeholder sections for Overview, Installation, Usage, Environment, License.
+
+8. **Do NOT** add any endpoint code, tests, or build output. Only scaffolding.
+
+────────────────────────────────────────────────
+DELIVERABLE FORMAT
+────────────────────────────────────────────────
+Output the **exact shell commands** (bash) needed to create the directory tree, write each required file with correct contents, and install dependencies.  
+For each file you create, echo its full contents via `cat <<'EOF' > path/filename` … `EOF` style.  
+Example pattern:
+
+```bash
+mkdir -p sdk/modules sdk/test
+cat <<'EOF' > sdk/package.json
+{ …json… }
+EOF
+```
+
+Follow that pattern for every file.
+End with echo "Environment setup complete".
+
+Only output shell commands. Do not include explanations or Markdown.
