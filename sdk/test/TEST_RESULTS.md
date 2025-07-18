@@ -4,8 +4,8 @@
 
 **Date:** July 18, 2024  
 **Test Runner:** Vitest v3.2.4  
-**Total Tests:** 6  
-**Test Files:** 2  
+**Total Tests:** 13  
+**Test Files:** 4  
 **Status:** ✅ All Tests Passing
 
 ## Test Execution Command
@@ -40,6 +40,72 @@ npm test -- --reporter=verbose
      - Verifies correct payload is sent (refresh token)
      - Verifies new access token is stored
      - Verifies response data is returned correctly
+
+### Test File: `test/accounts.test.ts`
+**Status:** ✅ PASSED (3 tests)
+
+#### Test Suite: Accounts Module
+1. **should get account by ID** ✅ (2ms)
+   - **Purpose:** Verifies retrieving a specific account by ID
+   - **Test Flow:**
+     - Mocks axios client with account data
+     - Calls `accountsModule.get('acc-123')`
+     - Verifies correct API endpoint is called (`/accounts/acc-123`)
+     - Verifies account data structure matches expected format
+     - Validates account properties (id, name, status, timestamps)
+
+2. **should list accounts with pagination** ✅ (3ms)
+   - **Purpose:** Verifies listing all accounts with pagination
+   - **Test Flow:**
+     - Mocks axios client with paginated accounts response
+     - Calls `accountsModule.list()`
+     - Verifies correct API endpoint is called (`/accounts`)
+     - Verifies pagination data structure is correct
+     - Validates multiple accounts in response array
+
+3. **should handle empty accounts list** ✅ (2ms)
+   - **Purpose:** Verifies handling of empty accounts list
+   - **Test Flow:**
+     - Mocks axios client with empty paginated response
+     - Calls `accountsModule.list()`
+     - Verifies correct API endpoint is called
+     - Validates empty data array and zero total count
+
+### Test File: `test/organizations.test.ts`
+**Status:** ✅ PASSED (4 tests)
+
+#### Test Suite: Organizations Module
+1. **should get organization by ID** ✅ (2ms)
+   - **Purpose:** Verifies retrieving a specific organization by ID
+   - **Test Flow:**
+     - Mocks axios client with organization data
+     - Calls `organizationsModule.get('acc-456', 'org-123')`
+     - Verifies correct API endpoint is called (`/accounts/{accountId}/organizations/{organizationId}`)
+     - Validates organization properties and relationships
+
+2. **should create organization with valid payload** ✅ (2ms)
+   - **Purpose:** Verifies creating a new organization
+   - **Test Flow:**
+     - Mocks axios client with created organization response
+     - Calls `organizationsModule.create('acc-456', { name: 'New Organization' })`
+     - Verifies correct API endpoint is called (`POST /accounts/{accountId}/organizations`)
+     - Validates payload structure and response data
+
+3. **should validate organization creation payload structure** ✅ (2ms)
+   - **Purpose:** Verifies payload validation for organization creation
+   - **Test Flow:**
+     - Tests payload structure validation
+     - Validates required properties (name)
+     - Verifies response structure completeness
+     - Ensures all expected fields are present
+
+4. **should handle organization creation with empty name** ✅ (2ms)
+   - **Purpose:** Verifies handling of edge case with empty organization name
+   - **Test Flow:**
+     - Mocks axios client with response for empty name
+     - Calls create with empty name payload
+     - Verifies API call is made correctly
+     - Validates response handling
 
 ### Test File: `test/dids.test.ts`
 **Status:** ✅ PASSED (4 tests)
@@ -117,11 +183,11 @@ describe('Module Name', () => {
 
 ## Performance Metrics
 
-- **Total Duration:** 592ms
-- **Transform Time:** 284ms (TypeScript compilation)
-- **Collection Time:** 445ms (test discovery)
-- **Test Execution:** 16ms (actual test runtime)
-- **Setup Time:** 0ms (no global setup required)
+- **Total Duration:** 735ms
+- **Transform Time:** 497ms (TypeScript compilation)
+- **Collection Time:** 620ms (test discovery)
+- **Test Execution:** 29ms (actual test runtime)
+- **Setup Time:** 1ms (minimal setup required)
 
 ## Coverage Areas
 
@@ -131,6 +197,21 @@ describe('Module Name', () => {
 - ✅ Access token storage
 - ✅ API endpoint validation
 - ✅ Request payload validation
+
+### Accounts Module Coverage
+- ✅ Account retrieval by ID
+- ✅ Account listing with pagination
+- ✅ Empty accounts list handling
+- ✅ API endpoint validation
+- ✅ Response data structure validation
+
+### Organizations Module Coverage
+- ✅ Organization retrieval by ID
+- ✅ Organization creation with payload validation
+- ✅ Payload structure validation
+- ✅ Edge case handling (empty names)
+- ✅ API endpoint validation
+- ✅ Response data structure validation
 
 ### DIDs Module Coverage
 - ✅ DID listing with pagination
