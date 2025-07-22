@@ -2,7 +2,7 @@
 
 ## Test Execution Summary
 
-**Date:** July 18, 2025  
+**Date:** July 22, 2025  
 **Test Runner:** Vitest v3.2.4  
 **Total Tests:** 13  
 **Test Files:** 4  
@@ -50,9 +50,9 @@ npm test -- --reporter=verbose
    - **Test Flow:**
      - Mocks axios client with account data
      - Calls `accountsModule.get('acc-123')`
-     - Verifies correct API endpoint is called (`/accounts/acc-123`)
+     - Verifies correct API endpoint is called (`/account/acc-123`)
      - Verifies account data structure matches expected format
-     - Validates account properties (id, name, status, timestamps)
+     - Validates account properties (account_name, organizations)
 
 2. **should list accounts with pagination** ✅ (3ms)
    - **Purpose:** Verifies listing all accounts with pagination
@@ -80,30 +80,30 @@ npm test -- --reporter=verbose
    - **Test Flow:**
      - Mocks axios client with organization data
      - Calls `organizationsModule.get('acc-456', 'org-123')`
-     - Verifies correct API endpoint is called (`/accounts/{accountId}/organizations/{organizationId}`)
+     - Verifies correct API endpoint is called (`/account/{accountId}/organization/{organizationId}`)
      - Validates organization properties and relationships
 
 2. **should create organization with valid payload** ✅ (2ms)
    - **Purpose:** Verifies creating a new organization
    - **Test Flow:**
      - Mocks axios client with created organization response
-     - Calls `organizationsModule.create('acc-456', { name: 'New Organization' })`
-     - Verifies correct API endpoint is called (`POST /accounts/{accountId}/organizations`)
+     - Calls `organizationsModule.create('acc-456', { business_info: {...}, contact_info: {...}, calling_behavior: {...} })`
+     - Verifies correct API endpoint is called (`POST /account/{accountId}/organization/`)
      - Validates payload structure and response data
 
 3. **should validate organization creation payload structure** ✅ (2ms)
    - **Purpose:** Verifies payload validation for organization creation
    - **Test Flow:**
      - Tests payload structure validation
-     - Validates required properties (name)
+     - Validates required properties (business_info, contact_info, calling_behavior)
      - Verifies response structure completeness
      - Ensures all expected fields are present
 
-4. **should handle organization creation with empty name** ✅ (2ms)
-   - **Purpose:** Verifies handling of edge case with empty organization name
+4. **should handle organization creation with minimal payload** ✅ (2ms)
+   - **Purpose:** Verifies handling of edge case with minimal organization payload
    - **Test Flow:**
-     - Mocks axios client with response for empty name
-     - Calls create with empty name payload
+     - Mocks axios client with response for minimal payload
+     - Calls create with minimal payload (null values for optional fields)
      - Verifies API call is made correctly
      - Validates response handling
 
@@ -125,7 +125,7 @@ npm test -- --reporter=verbose
    - **Test Flow:**
      - Mocks axios client with successful response
      - Calls `didsModule.add('acc-123', 'org-456', '+1234567890', 'Test DID')`
-     - Verifies correct API endpoint is called (`POST /accounts/{accountId}/organizations/{orgId}/dids`)
+     - Verifies correct API endpoint is called (`POST /account/{accountId}/organization/{orgId}/did`)
      - Verifies payload includes number and branded name
      - Verifies response data structure is correct
 
@@ -134,16 +134,16 @@ npm test -- --reporter=verbose
    - **Test Flow:**
      - Mocks axios client with successful response
      - Calls `didsModule.remove('acc-123', 'org-456', '+1234567890')`
-     - Verifies correct API endpoint is called (`DELETE /accounts/{accountId}/organizations/{orgId}/dids/{number}`)
+     - Verifies correct API endpoint is called (`DELETE /account/{accountId}/organization/{orgId}/did/{number}`)
      - Verifies no return value (void function)
 
 4. **should perform bulk operations** ✅ (1ms)
    - **Purpose:** Verifies bulk DID operations (add/delete multiple DIDs)
    - **Test Flow:**
      - Mocks axios client with successful response
-     - Calls `didsModule.bulk('acc-123', 'org-456', 'add', ['+1234567890', '+0987654321'])`
-     - Verifies correct API endpoint is called (`POST /accounts/{accountId}/organizations/{orgId}/dids/bulk`)
-     - Verifies payload includes action and numbers array
+     - Calls `didsModule.bulk('acc-123', 'org-456', 'add', [{ number: '+1234567890', branded_name: 'Test DID 1' }, { number: '+0987654321', branded_name: 'Test DID 2' }])`
+     - Verifies correct API endpoint is called (`POST /account/{accountId}/organization/{orgId}/did/bulk`)
+     - Verifies payload includes action, numbers array with objects, and organization_id
      - Verifies no return value (void function)
 
 ## Test Architecture

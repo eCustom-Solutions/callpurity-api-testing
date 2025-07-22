@@ -78,7 +78,7 @@ console.log('Access token:', authResponse.access_token);
 
 // List all accounts
 const accounts = await CallPuritySDK.accounts.list();
-console.log('Accounts:', accounts.data);
+console.log('Accounts:', accounts);
 
 // Get specific account
 const account = await CallPuritySDK.accounts.get('account-id');
@@ -90,7 +90,7 @@ console.log('Account:', account);
 ```typescript
 // List DIDs with pagination
 const dids = await CallPuritySDK.dids.list('account-id', 'org-id', 1, 20);
-console.log('DIDs:', dids.data);
+console.log('DIDs:', dids.dids);
 
 // Add a new DID
 const newDid = await CallPuritySDK.dids.add(
@@ -115,9 +115,37 @@ await CallPuritySDK.dids.bulk(
 ```typescript
 // Create new organization
 const org = await CallPuritySDK.organizations.create('account-id', {
-  name: 'My Organization'
+  business_info: {
+    legal_company_name: "My Organization LLC",
+    dba: "My Org",
+    ein: "123456789",
+    business_phone_number: "5551234567",
+    employee_count: 10,
+    website: "https://myorg.example.com",
+    quantity_of_phone_numbers: 5,
+    address: "123 Main St",
+    city: "My City",
+    state: "CA",
+    zip_code: "90210"
+  },
+  contact_info: {
+    first_name: "John",
+    last_name: "Doe",
+    email: "john@myorg.example.com",
+    phone: "5559876543"
+  },
+  calling_behavior: {
+    telecom_provider: "My Provider",
+    own_dids: false,
+    dialing_opt_in_data: true,
+    using_opt_in_data_provider: false,
+    tcpa_dnc_violation: null,
+    calls_per_day: 100,
+    max_redial_attempts_daily_per_lead: 3,
+    max_redial_attempts_weekly_per_lead: 5
+  }
 });
-console.log('Organization:', org);
+console.log('Organization ID:', org.organization_id);
 
 // Get organization details
 const organization = await CallPuritySDK.organizations.get('account-id', 'org-id');
@@ -180,35 +208,35 @@ Refresh the access token using a refresh token.
 
 ### Accounts
 
-#### `accounts.list(): Promise<PaginatedResponse<Account>>`
-Get all accounts with pagination support.
+#### `accounts.list(): Promise<AccountWithOrganizations[]>`
+Get all accounts with their organizations.
 
 #### `accounts.get(accountId: string): Promise<Account>`
 Get specific account details by ID.
 
 ### Organizations
 
-#### `organizations.create(accountId: string, payload: CreateOrganizationRequest): Promise<Organization>`
+#### `organizations.create(accountId: string, payload: CreateOrganizationRequest): Promise<CreateOrganizationResponse>`
 Create a new organization within an account.
 
-#### `organizations.get(accountId: string, organizationId: string): Promise<Organization>`
+#### `organizations.get(accountId: string, organizationId: string): Promise<OrganizationDetailResponse>`
 Get organization details.
 
 ### DIDs
 
-#### `dids.list(accountId: string, orgId: string, page?: number, pageSize?: number): Promise<PaginatedResponse<DID>>`
+#### `dids.list(accountId: string, orgId: string, page?: number, pageSize?: number): Promise<OrganizationDidListResponse>`
 List DIDs with pagination support.
 
-#### `dids.get(accountId: string, orgId: string, number: string): Promise<DID>`
+#### `dids.get(accountId: string, orgId: string, number: string): Promise<OrganizationDidResponse>`
 Get specific DID details.
 
-#### `dids.add(accountId: string, orgId: string, number: string, brandedName?: string): Promise<DID>`
+#### `dids.add(accountId: string, orgId: string, number: string, brandedName?: string): Promise<void>`
 Add a new DID with optional branded name.
 
 #### `dids.remove(accountId: string, orgId: string, number: string): Promise<void>`
 Remove a DID.
 
-#### `dids.bulk(accountId: string, orgId: string, action: "add" | "delete", numbers: string[]): Promise<void>`
+#### `dids.bulk(accountId: string, orgId: string, action: "add" | "delete", numbers: Array<{number: string, branded_name?: string}>): Promise<void>`
 Perform bulk operations on multiple DIDs.
 
 ## Error Handling

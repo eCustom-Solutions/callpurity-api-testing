@@ -16,22 +16,23 @@ describe('DIDs Module', () => {
   it('should list DIDs with pagination', async () => {
     const mockResponse = {
       data: {
-        data: [
+        dids: [
           {
             number: '+1234567890',
-            accountId: 'acc-123',
-            organizationId: 'org-456',
-            status: 'active',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
+            branded_name: 'Test DID',
+            approved: true,
+            tmobile_caller_id: 'Test Caller',
+            verizon_caller_id: 'Test Caller',
+            att_caller_id: 'Test Caller',
+            tmobile_is_spam: false,
+            verizon_is_spam: false,
+            att_is_spam: false,
           },
         ],
-        pagination: {
-          page: 1,
-          pageSize: 20,
-          total: 1,
-          totalPages: 1,
-        },
+        page: 1,
+        page_size: 20,
+        total_count: 1,
+        total_pages: 1,
       },
     };
 
@@ -40,37 +41,23 @@ describe('DIDs Module', () => {
     const didsModule = createDidsModule(mockClient);
     const result = await didsModule.list('acc-123', 'org-456', 1, 20);
 
-    expect(mockClient.get).toHaveBeenCalledWith('/accounts/acc-123/organizations/org-456/dids', {
-      params: { page: 1, pageSize: 20 },
+    expect(mockClient.get).toHaveBeenCalledWith('/account/acc-123/organization/org-456/dids', {
+      params: { page: 1, page_size: 20 },
     });
 
     expect(result).toEqual(mockResponse.data);
   });
 
   it('should add a DID', async () => {
-    const mockResponse = {
-      data: {
-        number: '+1234567890',
-        accountId: 'acc-123',
-        organizationId: 'org-456',
-        brandedName: 'Test DID',
-        status: 'active',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-    };
-
-    mockClient.post.mockResolvedValue(mockResponse);
+    mockClient.post.mockResolvedValue({});
 
     const didsModule = createDidsModule(mockClient);
-    const result = await didsModule.add('acc-123', 'org-456', '+1234567890', 'Test DID');
+    await didsModule.add('acc-123', 'org-456', '+1234567890', 'Test DID');
 
-    expect(mockClient.post).toHaveBeenCalledWith('/accounts/acc-123/organizations/org-456/dids', {
+    expect(mockClient.post).toHaveBeenCalledWith('/account/acc-123/organization/org-456/did', {
       number: '+1234567890',
-      brandedName: 'Test DID',
+      branded_name: 'Test DID',
     });
-
-    expect(result).toEqual(mockResponse.data);
   });
 
   it('should remove a DID', async () => {
@@ -79,18 +66,25 @@ describe('DIDs Module', () => {
     const didsModule = createDidsModule(mockClient);
     await didsModule.remove('acc-123', 'org-456', '+1234567890');
 
-    expect(mockClient.delete).toHaveBeenCalledWith('/accounts/acc-123/organizations/org-456/dids/+1234567890');
+    expect(mockClient.delete).toHaveBeenCalledWith('/account/acc-123/organization/org-456/did/+1234567890');
   });
 
   it('should perform bulk operations', async () => {
     mockClient.post.mockResolvedValue({});
 
     const didsModule = createDidsModule(mockClient);
-    await didsModule.bulk('acc-123', 'org-456', 'add', ['+1234567890', '+0987654321']);
+    await didsModule.bulk('acc-123', 'org-456', 'add', [
+      { number: '+1234567890', branded_name: 'Test DID 1' },
+      { number: '+0987654321', branded_name: 'Test DID 2' }
+    ]);
 
-    expect(mockClient.post).toHaveBeenCalledWith('/accounts/acc-123/organizations/org-456/dids/bulk', {
+    expect(mockClient.post).toHaveBeenCalledWith('/account/acc-123/organization/org-456/did/bulk', {
       action: 'add',
-      numbers: ['+1234567890', '+0987654321'],
+      numbers: [
+        { number: '+1234567890', branded_name: 'Test DID 1' },
+        { number: '+0987654321', branded_name: 'Test DID 2' }
+      ],
+      organization_id: 'org-456',
     });
   });
 }); 

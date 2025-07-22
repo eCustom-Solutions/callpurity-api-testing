@@ -13,11 +13,13 @@ describe('Accounts Module', () => {
 
   it('should get account by ID', async () => {
     const mockAccount = {
-      id: 'acc-123',
-      name: 'Test Account',
-      status: 'active',
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      account_name: 'Test Account',
+      organizations: [
+        {
+          organization_id: 'org-123',
+          organization_name: 'Test Organization',
+        },
+      ],
     };
 
     mockClient.get.mockResolvedValue({ data: mockAccount });
@@ -25,35 +27,35 @@ describe('Accounts Module', () => {
     const accountsModule = createAccountsModule(mockClient);
     const result = await accountsModule.get('acc-123');
 
-    expect(mockClient.get).toHaveBeenCalledWith('/accounts/acc-123');
+    expect(mockClient.get).toHaveBeenCalledWith('/account/acc-123');
     expect(result).toEqual(mockAccount);
+    expect(result.account_name).toBe('Test Account');
+    expect(result.organizations).toHaveLength(1);
   });
 
   it('should list accounts with pagination', async () => {
-    const mockAccountsResponse = {
-      data: [
-        {
-          id: 'acc-123',
-          name: 'Test Account 1',
-          status: 'active',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        },
-        {
-          id: 'acc-456',
-          name: 'Test Account 2',
-          status: 'active',
-          createdAt: '2024-01-02T00:00:00Z',
-          updatedAt: '2024-01-02T00:00:00Z',
-        },
-      ],
-      pagination: {
-        page: 1,
-        pageSize: 20,
-        total: 2,
-        totalPages: 1,
+    const mockAccountsResponse = [
+      {
+        account_id: 'acc-123',
+        account_name: 'Test Account 1',
+        organizations: [
+          {
+            organization_id: 'org-123',
+            organization_name: 'Test Organization 1',
+          },
+        ],
       },
-    };
+      {
+        account_id: 'acc-456',
+        account_name: 'Test Account 2',
+        organizations: [
+          {
+            organization_id: 'org-456',
+            organization_name: 'Test Organization 2',
+          },
+        ],
+      },
+    ];
 
     mockClient.get.mockResolvedValue({ data: mockAccountsResponse });
 
@@ -62,21 +64,13 @@ describe('Accounts Module', () => {
 
     expect(mockClient.get).toHaveBeenCalledWith('/accounts');
     expect(result).toEqual(mockAccountsResponse);
-    expect(result.data).toHaveLength(2);
-    expect(result.data[0].id).toBe('acc-123');
-    expect(result.data[1].id).toBe('acc-456');
+    expect(result).toHaveLength(2);
+    expect(result[0].account_id).toBe('acc-123');
+    expect(result[1].account_id).toBe('acc-456');
   });
 
   it('should handle empty accounts list', async () => {
-    const mockEmptyResponse = {
-      data: [],
-      pagination: {
-        page: 1,
-        pageSize: 20,
-        total: 0,
-        totalPages: 0,
-      },
-    };
+    const mockEmptyResponse: any[] = [];
 
     mockClient.get.mockResolvedValue({ data: mockEmptyResponse });
 
@@ -84,7 +78,6 @@ describe('Accounts Module', () => {
     const result = await accountsModule.list();
 
     expect(mockClient.get).toHaveBeenCalledWith('/accounts');
-    expect(result.data).toHaveLength(0);
-    expect(result.pagination.total).toBe(0);
+    expect(result).toHaveLength(0);
   });
 }); 
