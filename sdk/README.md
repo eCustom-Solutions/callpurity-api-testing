@@ -49,6 +49,22 @@ TEST_ACCOUNT_ID=your-test-account-id
 TEST_ORG_ID=your-test-org-id
 ```
 
+### 🔍 Discovering Test IDs
+
+To automatically discover valid account and organization IDs for testing, use the bootstrap discovery script:
+
+```bash
+npm run discover
+```
+
+This script will:
+1. Authenticate using your credentials
+2. List all available accounts
+3. Attempt to discover organizations for each account
+4. Output copy-pasteable `.env` configuration values
+
+This is particularly useful for setting up integration tests without manually discovering IDs.
+
 ## Usage
 
 ### Basic Usage
@@ -124,6 +140,13 @@ npm run test:int
 ```
 - Integration tests are in `test/integration/` and require real API credentials.
 - Results should be logged in `test/TEST_RESULTS.integration.md`.
+
+#### Discovery Script
+```bash
+npm run discover
+```
+- Automatically discovers account and organization IDs for testing
+- Useful for setting up `.env` configuration for integration tests
 
 ### Building
 

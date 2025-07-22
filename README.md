@@ -6,7 +6,13 @@ This project contains a complete, production-ready CallPurity SDK for API testin
 
 - `sdk/` - The complete CallPurity SDK implementation
   - `modules/` - SDK modules (auth, accounts, organizations, dids)
-  - `test/` - Comprehensive unit test suite
+  - `scripts/` - Utility scripts
+    - `bootstrap-discovery.ts` - Auto-discover account/org IDs for testing
+  - `test/` - Test suite
+    - `unit/` - Unit tests for all modules
+    - `integration/` - Integration tests (real API calls)
+    - `TEST_RESULTS.unit.md` - Unit test results
+    - `TEST_RESULTS.integration.md` - Integration test results
   - `utils/` - Utility functions and validators
   - `client.ts` - Main HTTP client with interceptors
   - `config.ts` - Configuration and token management
@@ -41,6 +47,7 @@ This project contains a complete, production-ready CallPurity SDK for API testin
 - Comprehensive unit test suite with Vitest
 - Mocked HTTP requests for reliable testing
 - 100% test coverage for core functionality
+- **Integration tests** for real API flows (see below)
 
 ## Getting Started
 
@@ -51,10 +58,15 @@ This project contains a complete, production-ready CallPurity SDK for API testin
    EMAIL=your-email@example.com
    PASSWORD=your-password
    API_BASE_URL=https://api.callpurity.com/latest
+   # Optional for integration tests:
+   TEST_ACCOUNT_ID=your-test-account-id
+   TEST_ORG_ID=your-test-org-id
    ```
-4. Run tests: `npm test`
-5. Build the project: `npm run build`
-6. Run the development server: `npm run dev`
+4. Run unit tests: `npm run test` or `npm run test:unit`
+5. Run integration tests: `npm run test:int`
+6. **Discover test IDs**: `npm run discover` (auto-finds account/org IDs for testing)
+7. Build the project: `npm run build`
+8. Run the development server: `npm run dev`
 
 ## Quick Example
 
@@ -70,3 +82,12 @@ const accounts = await CallPuritySDK.accounts.list();
 // Add a DID
 await CallPuritySDK.dids.add('account-id', 'org-id', '+1234567890', 'My DID');
 ```
+
+## Integration Testing
+
+- Integration tests are located in `sdk/test/integration/`.
+- They require real API credentials and may modify sandbox data.
+- Results and notes should be logged in `sdk/test/TEST_RESULTS.integration.md` after each run.
+- See `.env.example` for required environment variables.
+
+---
