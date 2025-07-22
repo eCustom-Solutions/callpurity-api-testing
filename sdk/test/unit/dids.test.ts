@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createDidsModule } from '../modules/dids.js';
+import { createDidsModule } from '../../modules/dids.js';
 
 describe('DIDs Module', () => {
   let mockClient: any;

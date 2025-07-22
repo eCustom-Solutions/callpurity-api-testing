@@ -17,7 +17,7 @@ npm test -- --reporter=verbose
 
 ## Detailed Test Results
 
-### Test File: `test/auth.test.ts`
+### Test File: `test/unit/auth.test.ts`
 **Status:** ✅ PASSED (2 tests)
 
 #### Test Suite: Auth Module
@@ -41,7 +41,7 @@ npm test -- --reporter=verbose
      - Verifies new access token is stored
      - Verifies response data is returned correctly
 
-### Test File: `test/accounts.test.ts`
+### Test File: `test/unit/accounts.test.ts`
 **Status:** ✅ PASSED (3 tests)
 
 #### Test Suite: Accounts Module
@@ -71,7 +71,7 @@ npm test -- --reporter=verbose
      - Verifies correct API endpoint is called
      - Validates empty data array and zero total count
 
-### Test File: `test/organizations.test.ts`
+### Test File: `test/unit/organizations.test.ts`
 **Status:** ✅ PASSED (4 tests)
 
 #### Test Suite: Organizations Module
@@ -107,7 +107,7 @@ npm test -- --reporter=verbose
      - Verifies API call is made correctly
      - Validates response handling
 
-### Test File: `test/dids.test.ts`
+### Test File: `test/unit/dids.test.ts`
 **Status:** ✅ PASSED (4 tests)
 
 #### Test Suite: DIDs Module

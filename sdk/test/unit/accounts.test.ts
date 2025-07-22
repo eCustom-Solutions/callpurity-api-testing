@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createAccountsModule } from '../modules/accounts.js';
+import { createAccountsModule } from '../../modules/accounts.js';
 
 describe('Accounts Module', () => {
   let mockClient: any;

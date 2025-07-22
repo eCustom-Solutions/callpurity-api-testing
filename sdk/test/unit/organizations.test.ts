@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createOrganizationsModule } from '../modules/organizations.js';
+import { createOrganizationsModule } from '../../modules/organizations.js';
 
 describe('Organizations Module', () => {
   let mockClient: any;

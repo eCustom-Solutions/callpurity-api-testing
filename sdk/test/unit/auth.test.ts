@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { createAuthModule } from '../modules/auth.js';
-import { setAccessToken } from '../config.js';
+import { createAuthModule } from '../../modules/auth.js';
+import { setAccessToken } from '../../config.js';
 
 // Mock axios
 vi.mock('axios');
