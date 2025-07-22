@@ -5,7 +5,11 @@
   "scripts": {
     "build": "tsc",
     "dev": "node --loader ts-node/esm index.ts",
-    "test": "vitest"
+    "test": "vitest run --config vitest.unit.config.ts",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:int": "vitest run --config vitest.integration.config.ts",
+    "test:watch": "vitest --watch",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "axios": "^1.6.0",

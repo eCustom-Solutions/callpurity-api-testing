@@ -44,6 +44,9 @@ Create a `.env` file in the SDK directory:
 EMAIL=your-email@example.com
 PASSWORD=your-password
 API_BASE_URL=https://api.callpurity.com/latest
+# Optional for integration tests:
+TEST_ACCOUNT_ID=your-test-account-id
+TEST_ORG_ID=your-test-org-id
 ```
 
 ## Usage
@@ -109,16 +112,18 @@ console.log('Organization:', organization);
 
 ### Running Tests
 
+#### Unit Tests
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm test -- --watch
-
-# Run tests with verbose output
-npm test -- --reporter=verbose
+npm run test
+npm run test:unit
 ```
+
+#### Integration Tests
+```bash
+npm run test:int
+```
+- Integration tests are in `test/integration/` and require real API credentials.
+- Results should be logged in `test/TEST_RESULTS.integration.md`.
 
 ### Building
 
