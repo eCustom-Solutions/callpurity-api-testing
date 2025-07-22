@@ -31,8 +31,42 @@ export interface Organization {
   updatedAt: string;
 }
 
+export interface BusinessInfo {
+  legal_company_name: string;
+  dba: string | null;
+  ein: string;
+  business_phone_number: string;
+  employee_count: number | null;
+  website: string | null;
+  quantity_of_phone_numbers: number | null;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+}
+
+export interface ContactInfo {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+}
+
+export interface CallingBehavior {
+  telecom_provider: string | null;
+  own_dids: boolean | null;
+  dialing_opt_in_data: boolean | null;
+  using_opt_in_data_provider: boolean | null;
+  tcpa_dnc_violation: string | null;
+  calls_per_day: number | null;
+  max_redial_attempts_daily_per_lead: number | null;
+  max_redial_attempts_weekly_per_lead: number | null;
+}
+
 export interface CreateOrganizationRequest {
-  name: string;
+  business_info: BusinessInfo;
+  contact_info: ContactInfo;
+  calling_behavior: CallingBehavior;
 }
 
 export interface DID {

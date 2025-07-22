@@ -42,41 +42,69 @@ async function bootstrapDiscovery() {
     console.log('📊 Discovering accounts...');
     const accountsResponse = await CallPuritySDK.accounts.list();
     
-    if (!accountsResponse.data || accountsResponse.data.length === 0) {
+    console.log('📄 Full API Response:');
+    console.log(JSON.stringify(accountsResponse, null, 2));
+    console.log();
+    
+    // Handle both array response and paginated response formats
+    const accounts = Array.isArray(accountsResponse) ? accountsResponse : accountsResponse.data || [];
+    
+    if (accounts.length === 0) {
       console.log('⚠️  No accounts found');
+      console.log('💡 This could mean:');
+      console.log('   - No accounts exist in this environment');
+      console.log('   - Your account doesn\'t have access to any accounts');
+      console.log('   - The API is in a sandbox/test state');
       process.exit(0);
     }
 
-    console.log(`✅ Found ${accountsResponse.data.length} account(s):`);
-    accountsResponse.data.forEach(account => {
-      console.log(`   - ${account.name} (ID: ${account.id})`);
+    console.log(`✅ Found ${accounts.length} account(s):`);
+    accounts.forEach(account => {
+      console.log(`   - ${account.account_name || account.name} (ID: ${account.account_id || account.id})`);
     });
     console.log();
 
     // Step 3: Discover organizations for each account
     const discoveredIds: DiscoveredIds[] = [];
 
-    for (const account of accountsResponse.data) {
-      console.log(`🏢 Discovering organizations for account: ${account.name} (${account.id})`);
+    for (const account of accounts) {
+      const accountName = account.account_name || account.name;
+      const accountId = account.account_id || account.id;
+      
+      console.log(`🏢 Discovering organizations for account: ${accountName} (${accountId})`);
       
       const accountData: DiscoveredIds = {
-        accountId: account.id,
-        accountName: account.name,
+        accountId: accountId,
+        accountName: accountName,
         organizations: []
       };
 
       try {
-        // Note: This assumes there's a way to list organizations for an account
-        // If the API doesn't support listing organizations, we'll need to handle this differently
-        console.log(`   ⚠️  Organization discovery not implemented - API may not support listing organizations`);
-        console.log(`   💡 You may need to manually discover organization IDs or use a different approach`);
+        // Check if there are existing organizations in the account response
+        if (account.organizations && account.organizations.length > 0) {
+          console.log(`   ✅ Found ${account.organizations.length} existing organization(s):`);
+          account.organizations.forEach((org: any) => {
+            console.log(`      - ${org.name || org.organization_name} (${org.id || org.organization_id})`);
+            accountData.organizations.push({
+              organizationId: org.id || org.organization_id,
+              organizationName: org.name || org.organization_name
+            });
+          });
+        } else {
+          console.log(`   📝 No existing organizations found.`);
+          console.log(`   ⚠️  Organization creation endpoint returned 404 - endpoint may not be available`);
+          console.log(`   💡 You may need to create organizations manually through the API or web interface`);
+          console.log(`   🔧 For integration tests, you can use a known organization ID or skip organization tests`);
+        }
         
-        // For now, we'll just note that we found the account
         discoveredIds.push(accountData);
         
       } catch (error: any) {
-        console.log(`   ❌ Error discovering organizations: ${error.message}`);
-        // Still add the account even if org discovery fails
+        console.log(`   ❌ Error with organizations: ${error.message}`);
+        if (error.status) {
+          console.log(`   HTTP Status: ${error.status}`);
+        }
+        // Still add the account even if org operations fail
         discoveredIds.push(accountData);
       }
     }
