@@ -46,10 +46,10 @@ async function bootstrapDiscovery() {
     console.log(JSON.stringify(accountsResponse, null, 2));
     console.log();
     
-    // Handle both array response and paginated response formats
-    const accounts = Array.isArray(accountsResponse) ? accountsResponse : accountsResponse.data || [];
+    // Handle the new API response format
+    const accounts = accountsResponse;
     
-    if (accounts.length === 0) {
+    if (!accounts || accounts.length === 0) {
       console.log('⚠️  No accounts found');
       console.log('💡 This could mean:');
       console.log('   - No accounts exist in this environment');
@@ -59,8 +59,8 @@ async function bootstrapDiscovery() {
     }
 
     console.log(`✅ Found ${accounts.length} account(s):`);
-    accounts.forEach(account => {
-      console.log(`   - ${account.account_name || account.name} (ID: ${account.account_id || account.id})`);
+    accounts.forEach((account: any) => {
+      console.log(`   - ${account.account_name} (ID: ${account.account_id})`);
     });
     console.log();
 
@@ -68,8 +68,8 @@ async function bootstrapDiscovery() {
     const discoveredIds: DiscoveredIds[] = [];
 
     for (const account of accounts) {
-      const accountName = account.account_name || account.name;
-      const accountId = account.account_id || account.id;
+      const accountName = account.account_name;
+      const accountId = account.account_id;
       
       console.log(`🏢 Discovering organizations for account: ${accountName} (${accountId})`);
       
@@ -91,10 +91,57 @@ async function bootstrapDiscovery() {
             });
           });
         } else {
-          console.log(`   📝 No existing organizations found.`);
-          console.log(`   ⚠️  Organization creation endpoint returned 404 - endpoint may not be available`);
-          console.log(`   💡 You may need to create organizations manually through the API or web interface`);
-          console.log(`   🔧 For integration tests, you can use a known organization ID or skip organization tests`);
+          console.log(`   📝 No existing organizations found. Creating test organization...`);
+          
+          // Create a test organization
+          const testOrgPayload = {
+            business_info: {
+              legal_company_name: "Test Organization LLC",
+              dba: "Test Org",
+              ein: "123456789",
+              business_phone_number: "5551234567",
+              employee_count: 10,
+              website: "https://testorg.example.com",
+              quantity_of_phone_numbers: 5,
+              address: "123 Test Street",
+              city: "Test City",
+              state: "CA",
+              zip_code: "90210"
+            },
+            contact_info: {
+              first_name: "Test",
+              last_name: "User",
+              email: "test@example.com",
+              phone: "5559876543"
+            },
+            calling_behavior: {
+              telecom_provider: "Test Provider",
+              own_dids: false,
+              dialing_opt_in_data: true,
+              using_opt_in_data_provider: false,
+              tcpa_dnc_violation: null,
+              calls_per_day: 100,
+              max_redial_attempts_daily_per_lead: 3,
+              max_redial_attempts_weekly_per_lead: 5
+            }
+          };
+          
+          try {
+            const newOrg = await CallPuritySDK.organizations.create(accountId, testOrgPayload);
+            console.log(`   ✅ Created test organization with ID: ${newOrg.organization_id}`);
+            
+            accountData.organizations.push({
+              organizationId: newOrg.organization_id,
+              organizationName: "Test Organization LLC" // Use the name from our payload
+            });
+          } catch (createError: any) {
+            console.log(`   ❌ Failed to create organization: ${createError.message}`);
+            if (createError.status) {
+              console.log(`   HTTP Status: ${createError.status}`);
+            }
+            console.log(`   💡 You may need to create organizations manually through the API or web interface`);
+            console.log(`   🔧 For integration tests, you can use a known organization ID or skip organization tests`);
+          }
         }
         
         discoveredIds.push(accountData);

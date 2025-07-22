@@ -13,11 +13,11 @@ describe('DIDs (integration)', () => {
   it('adds and removes a DID', async () => {
     await CallPuritySDK.dids.add(accountId, orgId, num, 'Integration DID');
     const dids = await CallPuritySDK.dids.list(accountId, orgId);
-    expect(dids.data.some(d => d.number === num)).toBe(true);
+    expect(dids.dids.some(d => d.number === num)).toBe(true);
 
     await CallPuritySDK.dids.remove(accountId, orgId, num);
     const postRemoval = await CallPuritySDK.dids.list(accountId, orgId);
-    expect(postRemoval.data.some(d => d.number === num)).toBe(false);
+    expect(postRemoval.dids.some(d => d.number === num)).toBe(false);
   });
 
   afterAll(async () => {

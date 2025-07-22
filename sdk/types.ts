@@ -15,11 +15,14 @@ export interface RefreshRequest {
 }
 
 export interface Account {
-  id: string;
-  name: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  account_name: string;
+  organizations: Organization[];
+}
+
+export interface AccountWithOrganizations {
+  account_id: string;
+  account_name: string;
+  organizations: Organization[];
 }
 
 export interface Organization {
@@ -69,6 +72,59 @@ export interface CreateOrganizationRequest {
   calling_behavior: CallingBehavior;
 }
 
+export interface CreateOrganizationResponse {
+  organization_id: string;
+}
+
+export interface OrganizationDetailResponse {
+  registration_date: string;
+  approval_status: string;
+  name: string | null;
+}
+
+export interface OrganizationDid {
+  number: string;
+  branded_name: string | null;
+  approved: boolean;
+  tmobile_caller_id: string | null;
+  verizon_caller_id: string | null;
+  att_caller_id: string | null;
+  tmobile_is_spam: boolean | null;
+  verizon_is_spam: boolean | null;
+  att_is_spam: boolean | null;
+}
+
+export interface OrganizationDidRequest {
+  number: string;
+  branded_name: string | null;
+}
+
+export interface OrganizationDidListResponse {
+  dids: OrganizationDid[];
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+}
+
+export interface OrganizationDidResponse {
+  did: OrganizationDid;
+}
+
+export interface BulkDidCrudRequest {
+  numbers: OrganizationDidRequest[];
+  organization_id: string;
+  action: "add" | "delete";
+}
+
+export interface BulkDidCrudResponse {
+  processedCount: number;
+  skippedCount: number;
+  inputCount: number;
+  invalidCount: number;
+}
+
+// Legacy types for backward compatibility
 export interface DID {
   number: string;
   accountId: string;

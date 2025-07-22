@@ -10,12 +10,16 @@ describe('Accounts (integration)', () => {
 
   it('lists accounts', async () => {
     const accounts = await CallPuritySDK.accounts.list();
-    expect(Array.isArray(accounts.data)).toBe(true);
-    expect(accounts.data.length).toBeGreaterThan(0);
+    expect(Array.isArray(accounts)).toBe(true);
+    expect(accounts.length).toBeGreaterThan(0);
+    expect(accounts[0]).toHaveProperty('account_id');
+    expect(accounts[0]).toHaveProperty('account_name');
   });
 
   it('gets account by ID', async () => {
     const account = await CallPuritySDK.accounts.get(accountId);
-    expect(account).toHaveProperty('id', accountId);
+    expect(account).toHaveProperty('account_name');
+    expect(account).toHaveProperty('organizations');
+    expect(Array.isArray(account.organizations)).toBe(true);
   });
 }); 
