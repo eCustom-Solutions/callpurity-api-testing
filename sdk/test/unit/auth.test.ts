@@ -56,7 +56,7 @@ describe('Auth Module', () => {
     const result = await authModule.refresh('old-refresh-token');
 
     expect(mockClient.post).toHaveBeenCalledWith('/auth/refresh', {
-      refreshToken: 'old-refresh-token',
+      refresh_token: 'old-refresh-token',
     });
 
     expect(result).toEqual(mockResponse.data);
