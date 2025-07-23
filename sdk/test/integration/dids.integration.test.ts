@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import CallPuritySDK from '../../client.js';
 
-const num = '+15551231234';
+const num = '5551231234'; // 10-digit number starting with 5 (not 1)
 const accountId = process.env.TEST_ACCOUNT_ID!;
 const orgId     = process.env.TEST_ORG_ID!;
 

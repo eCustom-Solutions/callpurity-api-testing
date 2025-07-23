@@ -4,6 +4,12 @@ export const isValidPhoneNumber = (phoneNumber: string): boolean => {
   return phoneRegex.test(phoneNumber);
 };
 
+export const isValidDIDNumber = (didNumber: string): boolean => {
+  // DID number regex: 10 digits starting with 2-9 (matches API requirement)
+  const didRegex = /^[2-9]\d{9}$/;
+  return didRegex.test(didNumber);
+};
+
 export const isValidEIN = (ein: string): boolean => {
   // EIN format: XX-XXXXXXX (2 digits, hyphen, 7 digits)
   const einRegex = /^\d{2}-\d{7}$/;
