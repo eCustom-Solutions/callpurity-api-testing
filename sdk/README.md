@@ -96,7 +96,7 @@ console.log('DIDs:', dids.dids);
 const newDid = await CallPuritySDK.dids.add(
   'account-id', 
   'org-id', 
-  '+1234567890', 
+  '5551231234', // valid 10-digit number
   'My Branded DID'
 );
 console.log('New DID:', newDid);
@@ -106,7 +106,10 @@ await CallPuritySDK.dids.bulk(
   'account-id', 
   'org-id', 
   'add', 
-  ['+1234567890', '+0987654321']
+  [
+    { number: '5551231234', branded_name: 'First DID' },
+    { number: '5559876543', branded_name: 'Second DID' }
+  ]
 );
 ```
 
@@ -167,7 +170,7 @@ npm run test:unit
 npm run test:int
 ```
 - Integration tests are in `test/integration/` and require real API credentials.
-- Results should be logged in `test/TEST_RESULTS.integration.md`.
+- Results should be logged in `test/TEST_RESULTS.integration.md` (integration) and `test/TEST_RESULTS.unit.md` (unit).
 
 #### Discovery Script
 ```bash
@@ -265,7 +268,7 @@ The SDK includes a comprehensive test suite using Vitest. Tests cover:
 - Request/response handling
 - Error scenarios
 
-See `test/TEST_RESULTS.md` for detailed test results and coverage information.
+See `test/TEST_RESULTS.unit.md` and `test/TEST_RESULTS.integration.md` for detailed test results and coverage information.
 
 ## License
 MIT
