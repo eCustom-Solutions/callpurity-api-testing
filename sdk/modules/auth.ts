@@ -17,8 +17,8 @@ export const createAuthModule = (client: AxiosInstance) => ({
 
   async refresh(refreshToken: string): Promise<AuthResponse> {
     const response = await client.post<AuthResponse>('/auth/refresh', {
-      refreshToken,
-    } as RefreshRequest);
+      refresh_token: refreshToken,
+    });
     
     const authData = response.data;
     setAccessToken(authData.access_token);
