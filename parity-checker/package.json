@@ -1,0 +1,16 @@
+{
+  "name": "parity-checker",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "sync:dry": "ts-node index.ts --csv sample.csv"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  }
+} 
