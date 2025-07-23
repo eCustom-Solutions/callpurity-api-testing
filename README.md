@@ -31,6 +31,7 @@ This project contains a complete, production-ready CallPurity SDK for API testin
 - `prompts/` - Development prompts and documentation
   - `01_environment-setup.txt` - Environment setup instructions
   - `02_sdk-generation.txt` - SDK generation specifications
+  - `03_integration_test_generation.txt` - Integration test generation specifications
   - `04_parity_checker_mvp.txt` - Parity checker CLI tool specification
 
 ## Features
