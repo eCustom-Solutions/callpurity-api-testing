@@ -1,3 +1,6 @@
 
 # Project reporting files
 project-reporter/
+
+# Ignore environment variable files
+.env

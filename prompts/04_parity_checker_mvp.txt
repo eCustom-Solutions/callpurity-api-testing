@@ -1,0 +1,59 @@
+
+
+# Parity‑Checker Module – Generation Prompt for Cursor
+## Objective
+Generate a new **parity‑checker** module at the project root that can perform a **dry‑run reconciliation** between a source‑of‑truth CSV list of phone numbers and the current list of DIDs stored in CallPurity via the existing SDK.
+
+## Folder & File Layout
+project‑root/
+│
+├─ parity‑checker/
+│  ├─ index.ts            # CLI entry ‑ parse args, wire loaders + reconciler
+│  ├─ reconcile.ts        # PURE function: diff(sourceList, apiList) -> { toAdd, toDelete, mismatched }
+│  ├─ loader/
+│  │   ├─ csv.ts          # read CSV -> Promise<{ number:string; brandedName?:string }[]>
+│  │   └─ callpurity.ts   # fetch DIDs via SDK -> same shape array
+│  └─ writer/
+│      └─ stdout.ts       # render a human‑readable report (NO mutations yet)
+│
+├─ sdk/                   # pre‑existing CallPurity SDK (import as needed)
+├─ scripts/
+│   └─ bootstrap-discovery.ts
+└─ .env
+
+## MVP Behaviour
+1. **Input**: path to a CSV file (flag `--csv <path>`).  
+   • If not provided, defaults to `./sample_numbers.csv` in the project root if the file exists.  
+   • CSV schema: `number,branded_name,client,account,group` (header row expected; extra columns ignored if unused).  
+2. **Env vars required**: `EMAIL`, `PASSWORD`, `API_BASE_URL`, `ACCOUNT_ID`, `ORG_ID`.
+3. **Flow**  
+   a. `loader/csv.ts` reads & normalises the CSV.  
+   b. `loader/callpurity.ts` logs in via `sdk.auth.login()` and fetches DIDs with `sdk.dids.list(accountId, orgId)` (handle pagination).  
+   c. `reconcile.ts` computes:  
+      - `toAdd   = csvSet − apiSet`  
+      - `toDelete= apiSet − csvSet`  
+      - `mismatched` = in both but branded_name differs.  
+   d. `writer/stdout.ts` prints a summary table and counts.  
+   e. `index.ts` wires it all together; default is **dry‑run** (no API mutations).  
+4. **CLI flags**  
+   • `--csv` (optional if file exists at default path `./sample_numbers.csv`) path to source file  
+   • `--json` optional path; if provided, write diff result as JSON  
+   • `--apply` (placeholder) ignore for MVP
+
+## Coding Notes
+* Use `csv‑parse` (already in repo) or native Node `readline` + split.  
+* All phone numbers must be normalised with `utils/validators.ts::isValidPhoneNumber`; skip invalid rows with a warning.  
+* Keep `reconcile.ts` dependency‑free (pure). Unit tests can target this later.  
+* No Vitest config needed now; focus on working executable.
+
+## Deliverables
+Produce all files with basic implementations and add a new npm script to `package.json`:
+```json
+"sync:dry": "ts-node parity-checker/index.ts --csv sample.csv"
+```
+
+The end state should allow me to run:
+```bash
+npm run sync:dry -- --csv ./sample_numbers.csv
+```
+and see a report of adds/deletes without changing CallPurity.
