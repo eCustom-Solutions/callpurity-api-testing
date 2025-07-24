@@ -52,33 +52,4 @@ export function reconcile(sourceList: any[], apiList: any[]): ReconcileResult {
   }
   
   return { toAdd, toDelete, mismatched };
-}
-
-// TEMPORARY TEST: Run this file directly to test reconciliation logic
-if (import.meta.url === `file://${process.argv[1]}`) {
-  // Test case 1: Basic reconciliation
-  const sourceList = [
-    { number: '1234567890', brandedName: 'Test DID 1' },
-    { number: '0987654321', brandedName: 'Test DID 2' },
-    { number: '5555555555', brandedName: 'Test DID 3' }
-  ];
-  
-  const apiList = [
-    { number: '1234567890', brandedName: 'Test DID 1' }, // Same
-    { number: '0987654321', brandedName: 'Different Name' }, // Mismatched
-    { number: '1111111111', brandedName: 'API Only DID' } // API only
-  ];
-  
-  const result = reconcile(sourceList, apiList);
-  
-  console.log('--- Reconciliation Test ---');
-  console.log('Source list:', sourceList.length, 'items');
-  console.log('API list:', apiList.length, 'items');
-  console.log('To Add:', result.toAdd.length, 'items');
-  console.log('To Delete:', result.toDelete.length, 'items');
-  console.log('Mismatched:', result.mismatched.length, 'items');
-  console.log('\nDetailed Results:');
-  console.log('To Add:', result.toAdd);
-  console.log('To Delete:', result.toDelete);
-  console.log('Mismatched:', result.mismatched);
 } 
