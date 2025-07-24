@@ -4,9 +4,16 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 
 ## Features
 - Reads a CSV file of phone numbers (source of truth)
-- Fetches DIDs from CallPurity using the SDK
+- Fetches DIDs from CallPurity using the SDK with pagination support
 - Computes which numbers need to be added, deleted, or have mismatched branded names
 - Prints a human-readable dry-run report (no API mutations)
+
+## Implementation Status
+- ✅ CSV Loader: Reads and validates phone numbers from CSV files
+- ✅ CallPurity Loader: Fetches DIDs via SDK with pagination
+- 🔄 Reconciliation Logic: Pure function to compute differences
+- 🔄 Report Writer: Human-readable output formatting
+- 🔄 CLI Integration: Wire up all components
 
 ## Usage
 
@@ -15,7 +22,17 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
    npm install
    ```
 
-2. **Run the dry-run reconciliation:**
+2. **Set up environment variables:**
+   Create a `.env` file with:
+   ```
+   EMAIL=your-email@example.com
+   PASSWORD=your-password
+   API_BASE_URL=https://api.callpurity.com/latest
+   TEST_ACCOUNT_ID=your-test-account-id
+   TEST_ORG_ID=your-test-org-id
+   ```
+
+3. **Run the dry-run reconciliation:**
    ```bash
    npm run sync:dry -- --csv ./sample_numbers.csv
    ```
@@ -27,11 +44,18 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 - `--apply`: (Planned) Apply changes via API (not implemented in MVP)
 
 ## CSV Schema
-- Header row expected: `number,branded_name,client,account,group`
+- **Sample CSV format:** `Phone Number,Created At,Companies - Account → Name`
+- **Standard format:** `number,branded_name,client,account,group`
+- The loader maps `Phone Number` to `number` and supports both formats
 - Only `number` and `branded_name` are used; extra columns are ignored
+- Invalid phone numbers are skipped with validation using the SDK's `isValidPhoneNumber`
 
 ## Environment Variables
-- `EMAIL`, `PASSWORD`, `API_BASE_URL`, `ACCOUNT_ID`, `ORG_ID` must be set in your `.env` file
+- `EMAIL`: Your CallPurity login email
+- `PASSWORD`: Your CallPurity login password  
+- `API_BASE_URL`: CallPurity API base URL (defaults to production)
+- `TEST_ACCOUNT_ID`: Account ID for testing/development
+- `TEST_ORG_ID`: Organization ID for testing/development
 
 ## Example
 ```bash

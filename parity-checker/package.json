@@ -7,10 +7,11 @@
     "sync:dry": "ts-node index.ts --csv sample.csv"
   },
   "dependencies": {
-    "csv-parse": "^5.5.0"
+    "csv-parse": "^5.5.0",
+    "dotenv": "^17.2.1"
   },
   "devDependencies": {
-    "ts-node": "^10.9.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0"
   }
-} 
+}
