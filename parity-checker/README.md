@@ -12,8 +12,14 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 - ✅ CSV Loader: Reads and validates phone numbers from CSV files
 - ✅ CallPurity Loader: Fetches DIDs via SDK with pagination
 - ✅ Reconciliation Logic: Pure function to compute differences, tested with sample data
-- 🔄 Report Writer: Human-readable output formatting
+- ✅ Report Writer: Human-readable output formatting
 - 🔄 CLI Integration: Wire up all components
+
+## Report Output
+- The report writer prints a summary table to the console:
+  - Counts for numbers to add, delete, and mismatched branded names
+  - Sample details (up to 5) for each category
+  - Output is formatted for easy CLI review
 
 ## Reconciliation Logic
 - The reconciliation step is a **pure function**: it takes two lists (CSV and API) and returns what to add, delete, or flag as mismatched.
