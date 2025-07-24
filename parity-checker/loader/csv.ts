@@ -36,14 +36,4 @@ export async function loadCsv(csvPath: string): Promise<CsvRow[]> {
     result.push({ number: rawNumber });
   }
   return result;
-}
-
-// TEMPORARY TEST: Run this file directly to test CSV loading
-if (import.meta.url === `file://${process.argv[1]}`) {
-  loadCsv('./sample_numbers.csv').then(rows => {
-    console.log(`Loaded ${rows.length} valid rows:`);
-    console.dir(rows.slice(0, 5), { depth: null });
-  }).catch(err => {
-    console.error('Error loading CSV:', err);
-  });
 } 
