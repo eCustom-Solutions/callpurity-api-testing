@@ -13,18 +13,15 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 - ✅ CallPurity Loader: Fetches DIDs via SDK with pagination
 - ✅ Reconciliation Logic: Pure function to compute differences, tested with sample data
 - ✅ Report Writer: Human-readable output formatting
-- 🔄 CLI Integration: Wire up all components
+- ✅ CLI Integration: End-to-end workflow, production-ready
 
-## Report Output
-- The report writer prints a summary table to the console:
-  - Counts for numbers to add, delete, and mismatched branded names
-  - Sample details (up to 5) for each category
-  - Output is formatted for easy CLI review
-
-## Reconciliation Logic
-- The reconciliation step is a **pure function**: it takes two lists (CSV and API) and returns what to add, delete, or flag as mismatched.
-- It does **not** touch the API or perform any side effects—making it easy to test and reason about.
-- The logic is validated with sample test cases in the codebase.
+## End-to-End Workflow
+1. **Parse CLI arguments** (e.g., `--csv` flag)
+2. **Load and validate the CSV**
+3. **Fetch DIDs from CallPurity** (with pagination)
+4. **Reconcile** the two lists (pure function)
+5. **Print a summary report** to the console
+6. **No API mutations** are performed (dry-run only)
 
 ## Usage
 
@@ -45,8 +42,9 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 
 3. **Run the dry-run reconciliation:**
    ```bash
-   npm run sync:dry -- --csv ./sample_numbers.csv
+   npm run sync:dry
    ```
+   - Or specify a different CSV: `npm run sync:dry -- --csv yourfile.csv`
    - If `--csv` is not provided, defaults to `./sample_numbers.csv` if it exists.
 
 ## CLI Flags
