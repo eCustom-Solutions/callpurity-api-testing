@@ -4,7 +4,7 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "sync:dry": "ts-node index.ts --csv sample.csv"
+    "sync:dry": "node --loader ts-node/esm index.ts --csv sample_numbers.csv"
   },
   "dependencies": {
     "csv-parse": "^5.5.0",
