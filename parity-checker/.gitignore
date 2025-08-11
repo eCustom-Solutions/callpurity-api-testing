@@ -1,0 +1,13 @@
+# local environment
+.env
+
+# runtime artifacts
+reports/
+logs/
+data/input/
+data/cache/
+
+# keep samples tracked
+!data/samples/
+
+

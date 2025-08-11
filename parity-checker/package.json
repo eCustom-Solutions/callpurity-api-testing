@@ -2,9 +2,10 @@
   "name": "parity-checker",
   "version": "0.1.0",
   "type": "module",
-  "main": "index.ts",
+  "main": "src/cli.ts",
   "scripts": {
-    "sync:dry": "ts-node index.ts --csv sample.csv"
+    "sync:dry": "node --loader ts-node/esm src/cli.ts",
+    "sync:json": "node --loader ts-node/esm src/cli.ts --json diff.json"
   },
   "dependencies": {
     "csv-parse": "^5.5.0",

@@ -44,12 +44,12 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
    ```bash
    npm run sync:dry
    ```
-   - Or specify a different CSV: `npm run sync:dry -- --csv yourfile.csv`
-   - If `--csv` is not provided, defaults to `./sample_numbers.csv` if it exists.
+   - Defaults: reads `data/input/latest.csv`, writes JSON to `reports/json/diff.sandbox.json`.
+   - Use a different CSV: `npm run sync:dry -- --csv data/input/yourfile.csv`.
 
 ## CLI Flags
-- `--csv <path>`: Path to the source CSV file (default: `./sample_numbers.csv`)
-- `--json <path>`: (Planned) Output diff result as JSON
+- `--csv <path>`: Path to the source CSV file (default: `data/input/latest.csv`)
+- `--json <path>`: Output diff result as JSON (default: `reports/json/diff.sandbox.json`)
 - `--apply`: (Planned) Apply changes via API (not implemented in MVP)
 
 ## CSV Schema
@@ -68,7 +68,7 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 
 ## Example
 ```bash
-npm run sync:dry -- --csv ./sample_numbers.csv
+npm run sync:dry -- --csv data/input/sample_numbers.csv --json reports/json/mydiff.json
 ```
 
 ---
