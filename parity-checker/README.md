@@ -50,7 +50,10 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 ## CLI Flags
 - `--csv <path>`: Path to the source CSV file (default: `data/input/latest.csv`)
 - `--json <path>`: Output diff result as JSON (default: `reports/json/diff.sandbox.json`)
-- `--apply`: (Planned) Apply changes via API (not implemented in MVP)
+- `--apply`: Apply changes via API (guarded)
+- `--yes` or `-y`: Required to bypass confirmation and proceed with apply
+- `--max-add <n>`: Fail if toAdd exceeds n
+- `--max-delete <n>`: Fail if toDelete exceeds n
 
 ## CSV Schema
 - **Sample CSV format:** `Phone Number,Created At,Companies - Account → Name`
@@ -66,11 +69,18 @@ A CLI tool to perform a dry-run reconciliation between a source-of-truth CSV lis
 - `TEST_ACCOUNT_ID`: Account ID for testing/development
 - `TEST_ORG_ID`: Organization ID for testing/development
 
-## Example
+## Examples
 ```bash
+# Dry run with defaults
+npm run sync:dry
+
+# Dry run with explicit CSV/JSON
 npm run sync:dry -- --csv data/input/sample_numbers.csv --json reports/json/mydiff.json
+
+# Apply with safeguards (requires --yes)
+npm run sync:apply -- --csv data/input/sample_numbers.csv --yes --max-add 50 --max-delete 5
 ```
 
 ---
 
-*This tool is for dry-run reconciliation only. No API mutations are performed in the MVP.* 
+*Apply mode is guarded and requires explicit confirmation; defaults remain dry-run.*

@@ -5,7 +5,8 @@
   "main": "src/cli.ts",
   "scripts": {
     "sync:dry": "node --loader ts-node/esm src/cli.ts",
-    "sync:json": "node --loader ts-node/esm src/cli.ts --json diff.json"
+    "sync:json": "node --loader ts-node/esm src/cli.ts --json diff.json",
+    "sync:apply": "node --loader ts-node/esm src/cli.ts --apply"
   },
   "dependencies": {
     "csv-parse": "^5.5.0",
