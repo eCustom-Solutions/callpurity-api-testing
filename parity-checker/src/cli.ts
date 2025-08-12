@@ -10,7 +10,7 @@ import { CallPuritySDK } from '../../sdk/client.js';
 import type { NumberEntry, ReconcileResult } from './core/types.js';
 
 function parseArgs(argv: string[]) {
-  const options: { csvPath?: string; jsonPath?: string; accountId?: string; orgId?: string; apply?: boolean; yes?: boolean; maxAdd?: number; maxDelete?: number } = {};
+  const options: { csvPath?: string; jsonPath?: string; accountId?: string; orgId?: string; apply?: boolean; yes?: boolean; maxAdd?: number; maxDelete?: number; verifyBeforeApply?: boolean } = {};
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--csv') options.csvPath = argv[++i];
@@ -21,6 +21,7 @@ function parseArgs(argv: string[]) {
     else if (arg === '--yes' || arg === '-y') options.yes = true;
     else if (arg === '--max-add') options.maxAdd = parseInt(argv[++i], 10);
     else if (arg === '--max-delete') options.maxDelete = parseInt(argv[++i], 10);
+    else if (arg === '--verify-before-apply') options.verifyBeforeApply = true;
   }
   return options;
 }
@@ -30,8 +31,15 @@ async function main() {
   const csvPath = args.csvPath ?? await resolveDefaultCsv();
 
   const sourceList = await loadCsv(csvPath);
+  console.log(`Loaded CSV rows: ${sourceList.length}`);
   const apiList = await loadCallPurityDIDs(args.accountId, args.orgId);
-  const diff = reconcile(sourceList, apiList);
+  console.log(`Fetched DIDs from API: ${apiList.length}`);
+  let diff = reconcile(sourceList, apiList);
+  // Apply-first flow: skip verification unless explicitly requested
+  if (!args.apply || args.verifyBeforeApply) {
+    // Second-pass verification using direct GET checks to avoid list staleness
+    diff = await filterDiffWithDirectChecks(diff, args.accountId, args.orgId);
+  }
   writeStdout(diff);
   const defaultJson = path.join('reports', 'json', 'diff.sandbox.json');
   const jsonOut = args.jsonPath ?? defaultJson;
@@ -43,6 +51,15 @@ async function main() {
       maxAdd: args.maxAdd,
       maxDelete: args.maxDelete,
     });
+
+    // Post-apply verification: fetch latest API state, recompute diff, and run direct checks
+    console.log('--- Post-apply verification ---');
+    const apiListAfter = await loadCallPurityDIDs(args.accountId, args.orgId);
+    let postDiff = reconcile(sourceList, apiListAfter);
+    postDiff = await filterDiffWithDirectChecks(postDiff, args.accountId, args.orgId);
+    writeStdout(postDiff);
+    const postJson = jsonOut.replace(/\.json$/, '.postverify.json');
+    await writeJson(postDiff, postJson);
   }
 }
 
@@ -106,8 +123,14 @@ async function applyChangesOrExit(
 
   // Bulk adds
   if (numAdds > 0) {
-    const chunks = chunk(diff.toAdd.map(n => ({ number: n.number, branded_name: n.brandedName })), 100);
-    for (const group of chunks) {
+    console.log(`Applying adds: total ${numAdds} (chunk size 100)`);
+    const chunks = chunk(
+      diff.toAdd.map(n => ({ number: normalizeToDidNumber(n.number), branded_name: n.brandedName })),
+      100
+    );
+    for (let i = 0; i < chunks.length; i++) {
+      const group = chunks[i];
+      console.log(`Bulk add chunk ${i + 1}/${chunks.length} (size ${group.length})...`);
       await CallPuritySDK.dids.bulk(accountId, orgId, 'add', group);
     }
     console.log(`Applied adds: ${numAdds}`);
@@ -115,8 +138,14 @@ async function applyChangesOrExit(
 
   // Bulk deletes
   if (numDeletes > 0) {
-    const chunks = chunk(diff.toDelete.map(n => ({ number: n.number })), 100);
-    for (const group of chunks) {
+    console.log(`Applying deletes: total ${numDeletes} (chunk size 100)`);
+    const chunks = chunk(
+      diff.toDelete.map(n => ({ number: normalizeToDidNumber(n.number) })),
+      100
+    );
+    for (let i = 0; i < chunks.length; i++) {
+      const group = chunks[i];
+      console.log(`Bulk delete chunk ${i + 1}/${chunks.length} (size ${group.length})...`);
       await CallPuritySDK.dids.bulk(accountId, orgId, 'delete', group);
     }
     console.log(`Applied deletes: ${numDeletes}`);
@@ -127,5 +156,76 @@ function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
+}
+
+function normalizeToDidNumber(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  const normalized = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (!/^([2-9])\d{9}$/.test(normalized)) {
+    throw new Error(`Invalid DID number after normalization: ${input}`);
+  }
+  return normalized;
+}
+
+async function filterDiffWithDirectChecks(
+  diff: ReconcileResult,
+  accountIdArg?: string,
+  orgIdArg?: string
+): Promise<ReconcileResult> {
+  const accountId = accountIdArg || process.env.TEST_ACCOUNT_ID!;
+  const orgId = orgIdArg || process.env.TEST_ORG_ID!;
+  const startTs = Date.now();
+  // toAdd: keep only those that truly do not exist (GET returns 404)
+  const filteredAdds: typeof diff.toAdd = [];
+  if (diff.toAdd.length > 0) console.log(`Verifying toAdd via direct GET: ${diff.toAdd.length}`);
+  for (let i = 0; i < diff.toAdd.length; i++) {
+    const item = diff.toAdd[i];
+    try {
+      console.log(`[verify:add] ${i + 1}/${diff.toAdd.length} number=${item.number} → GET`);
+      await CallPuritySDK.dids.get(accountId, orgId, item.number);
+      // exists -> drop from toAdd
+      console.log(`[verify:add] ${i + 1}/${diff.toAdd.length} number=${item.number} exists -> drop`);
+    } catch (err: any) {
+      if (err?.status === 404) filteredAdds.push(item);
+      else filteredAdds.push(item); // conservative: if unknown error, keep for visibility
+      console.log(
+        `[verify:add] ${i + 1}/${diff.toAdd.length} number=${item.number} ` +
+          (err?.status === 404 ? 'missing -> keep' : `error(${err?.status ?? 'unknown'}) -> keep`)
+      );
+    }
+    if ((i + 1) % 10 === 0 || i + 1 === diff.toAdd.length) {
+      const elapsed = ((Date.now() - startTs) / 1000).toFixed(1);
+      const pct = Math.round(((i + 1) / Math.max(1, diff.toAdd.length)) * 100);
+      console.log(`Verified adds: ${i + 1}/${diff.toAdd.length} (${pct}%) elapsed=${elapsed}s`);
+    }
+  }
+  // toDelete: keep only those that truly still exist (GET returns 200)
+  const filteredDeletes: typeof diff.toDelete = [];
+  if (diff.toDelete.length > 0) console.log(`Verifying toDelete via direct GET: ${diff.toDelete.length}`);
+  for (let i = 0; i < diff.toDelete.length; i++) {
+    const item = diff.toDelete[i];
+    try {
+      console.log(`[verify:del] ${i + 1}/${diff.toDelete.length} number=${item.number} → GET`);
+      await CallPuritySDK.dids.get(accountId, orgId, item.number);
+      filteredDeletes.push(item); // exists -> keep for delete
+      console.log(`[verify:del] ${i + 1}/${diff.toDelete.length} number=${item.number} exists -> keep`);
+    } catch (err: any) {
+      if (err?.status === 404) {
+        // already gone -> drop
+        console.log(`[verify:del] ${i + 1}/${diff.toDelete.length} number=${item.number} missing -> drop`);
+      } else {
+        filteredDeletes.push(item); // conservative on unknown error
+        console.log(
+          `[verify:del] ${i + 1}/${diff.toDelete.length} number=${item.number} error(${err?.status ?? 'unknown'}) -> keep`
+        );
+      }
+    }
+    if ((i + 1) % 10 === 0 || i + 1 === diff.toDelete.length) {
+      const elapsed = ((Date.now() - startTs) / 1000).toFixed(1);
+      const pct = Math.round(((i + 1) / Math.max(1, diff.toDelete.length)) * 100);
+      console.log(`Verified deletes: ${i + 1}/${diff.toDelete.length} (${pct}%) elapsed=${elapsed}s`);
+    }
+  }
+  return { ...diff, toAdd: filteredAdds, toDelete: filteredDeletes };
 }
 
