@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import { parse } from 'csv-parse/sync';
 import path from 'path';
-import { isValidPhoneNumber } from '../../../sdk/utils/validators.js';
+import { isValidDIDNumber } from '../../../sdk/utils/validators.js';
 import type { NumberEntry } from '../core/types.js';
 
 export async function loadCsv(csvPath: string): Promise<NumberEntry[]> {
@@ -18,16 +18,25 @@ export async function loadCsv(csvPath: string): Promise<NumberEntry[]> {
   } catch (err) {
     throw new Error(`Failed to parse CSV: ${err}`);
   }
+  const seen = new Set<string>();
   const result: NumberEntry[] = [];
   for (const row of records) {
     const rawNumber = (row.number || row['Phone Number'] || '').toString().trim();
-    if (!isValidPhoneNumber(rawNumber)) {
-      continue;
-    }
+    const normalized = normalizeToDidNumber(rawNumber);
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
     const brandedName = (row.branded_name || row['Branded Name'] || row.brandedName || '').toString().trim() || undefined;
-    result.push({ number: rawNumber, brandedName });
+    result.push({ number: normalized, brandedName });
   }
   return result;
+}
+
+function normalizeToDidNumber(input: string): string | null {
+  const digits = input.replace(/\D/g, '');
+  const ten = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (!isValidDIDNumber(ten)) return null;
+  return ten;
 }
 
 

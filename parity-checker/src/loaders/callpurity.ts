@@ -15,18 +15,31 @@ export async function loadCallPurityDIDs(accountId?: string, orgId?: string): Pr
   await CallPuritySDK.auth.login(email, password);
   const pageSize = 100;
   const firstResp = await CallPuritySDK.dids.list(acc, org, 1, pageSize);
-  let dids: NumberEntry[] = (firstResp.dids || []).map((d: any) => ({
-    number: d.number,
-    brandedName: d.branded_name || undefined,
-  }));
+  const seen = new Set<string>();
+  let dids: NumberEntry[] = (firstResp.dids || [])
+    .map((d: any) => ({
+      number: normalizeToDidNumber(d.number),
+      brandedName: d.branded_name || undefined,
+    }))
+    .filter((d: { number: string | null }) => !!d.number && !seen.has(d.number as string) && seen.add(d.number as string))
+    .map((d: { number: string | null; brandedName?: string }) => ({ number: d.number as string, brandedName: d.brandedName }));
   const totalPages = firstResp.total_pages || 1;
   for (let page = 2; page <= totalPages; page++) {
     const resp = await CallPuritySDK.dids.list(acc, org, page, pageSize);
-    dids = dids.concat(
-      (resp.dids || []).map((d: any) => ({ number: d.number, brandedName: d.branded_name || undefined }))
-    );
+    const pageDids = (resp.dids || [])
+      .map((d: any) => ({ number: normalizeToDidNumber(d.number), brandedName: d.branded_name || undefined }))
+      .filter((d: { number: string | null }) => !!d.number && !seen.has(d.number as string) && seen.add(d.number as string))
+      .map((d: { number: string | null; brandedName?: string }) => ({ number: d.number as string, brandedName: d.brandedName }));
+    dids = dids.concat(pageDids as NumberEntry[]);
   }
   return dids;
+}
+
+function normalizeToDidNumber(input: string): string | null {
+  if (!input) return null;
+  const digits = String(input).replace(/\D/g, '');
+  const ten = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  return /^[2-9]\d{9}$/.test(ten) ? ten : null;
 }
 
 
