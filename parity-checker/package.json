@@ -6,7 +6,11 @@
   "scripts": {
     "sync:dry": "node --loader ts-node/esm src/cli.ts",
     "sync:json": "node --loader ts-node/esm src/cli.ts --json diff.json",
-    "sync:apply": "node --loader ts-node/esm src/cli.ts --apply"
+    "sync:apply": "node --loader ts-node/esm src/cli.ts --apply",
+    "verify:dids": "node --loader ts-node/esm src/scripts/verify-dids.ts",
+    "delete:dids": "node --loader ts-node/esm src/scripts/delete-dids.ts",
+    "export:dids": "node --loader ts-node/esm src/scripts/export-dids.ts",
+    "compare:csv": "node --loader ts-node/esm src/scripts/compare-csv.ts"
   },
   "dependencies": {
     "csv-parse": "^5.5.0",
