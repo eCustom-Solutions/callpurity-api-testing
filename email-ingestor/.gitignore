@@ -1,0 +1,9 @@
+# Local env secrets
+.env
+
+# Transpiled artifacts (ts-node/accidental)
+src/*.js
+
+# Logs/tmp
+logs/
+tmp/
