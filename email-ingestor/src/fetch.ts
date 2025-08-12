@@ -24,42 +24,85 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
     await client.mailboxOpen(inboxLabel);
     const lock = await client.getMailboxLock(inboxLabel);
     try {
-      // Fetch newest unread
-      const query = { seen: false };
+      // Fetch all messages in the label (read-agnostic), newest first
       const msgs = [] as any[];
-      for await (const msg of client.fetch(query, { envelope: true, bodyStructure: true, source: true })) {
+      for await (const msg of client.fetch('1:*', { envelope: true, bodyStructure: true, source: true })) {
         msgs.push(msg);
       }
       if (msgs.length === 0) return null;
       msgs.sort((a, b) => (b.internalDate as any) - (a.internalDate as any));
-      const m = msgs[0];
-      const from = (m.envelope.from?.[0]?.address || '').toLowerCase();
-      if (allowedSenders.length && !allowedSenders.includes(from)) return null;
+      // Find the most recent message that matches sender allowlist (if provided)
+      const m = msgs.find(mm => {
+        const fromAddr = (mm.envelope.from?.[0]?.address || '').toLowerCase();
+        return allowedSenders.length ? allowedSenders.includes(fromAddr) : true;
+      });
+      if (!m) return null;
 
       const messageId = m.envelope.messageId || String(m.uid);
+      const tsDate: Date = (m.internalDate as Date) || (m.envelope.date ? new Date(m.envelope.date) : new Date());
       const rawDir = path.join(parityRoot, 'data', 'inbox', 'raw');
       await fs.mkdir(rawDir, { recursive: true });
-      const rawPath = path.join(rawDir, `${toTs(m.internalDate)}_${sanitize(messageId)}.eml`);
+      const rawPath = path.join(rawDir, `${toTs(tsDate)}_${sanitize(messageId)}.eml`);
       await fs.writeFile(rawPath, m.source);
+      console.log(`Saved raw email to: ${rawPath}`);
 
-      // Extract first CSV attachment if present (simple heuristic)
+      // Extract first CSV attachment if present (robust heuristic)
       const bs: any = m.bodyStructure;
       const parts = flattenParts(bs);
-      const csvPart = parts.find(p => (p.disposition?.type || '').toLowerCase() === 'attachment' && String(p.disposition?.params?.filename || '').toLowerCase().endsWith('.csv'));
+      const getFilename = (p: any): string =>
+        String(
+          p?.disposition?.params?.filename ||
+          p?.dispositionParameters?.filename ||
+          p?.params?.name ||
+          p?.parameters?.name ||
+          ''
+        ).toLowerCase();
+      const isCsvPart = (p: any): boolean => {
+        const filename = getFilename(p);
+        const disp = String(p?.disposition?.type || p?.disposition || '').toLowerCase();
+        const type = String(p?.type || '').toLowerCase();
+        const subtype = String(p?.subtype || '').toLowerCase();
+        const isAttachment = disp.includes('attachment');
+        const isCsvFilename = filename.endsWith('.csv');
+        const isCsvMime = type === 'text' && subtype === 'csv';
+        return (isAttachment && isCsvFilename) || isCsvMime || isCsvFilename;
+      };
+      const csvPart = parts.find(isCsvPart);
       if (!csvPart) return { messageId, savedRawPath: rawPath };
 
       const canonicalDir = path.join(parityRoot, 'data', 'input', 'astrid');
       await fs.mkdir(canonicalDir, { recursive: true });
-      const canonPath = path.join(canonicalDir, `${toTs(m.internalDate)}_${sanitize(messageId)}.csv`);
-      const { content } = await client.download(m.uid, csvPart.part);
+      const canonPath = path.join(canonicalDir, `${toTs(tsDate)}_${sanitize(messageId)}.csv`);
+      const partId: any = (csvPart as any).part || (csvPart as any).partId || (csvPart as any).id || undefined;
+      if (!partId) {
+        throw new Error('CSV part found but missing part identifier');
+      }
+      const { content } = await client.download(m.uid, partId);
       const buf = await streamToBuffer(content);
       await fs.writeFile(canonPath + '.tmp', buf);
       await fs.rename(canonPath + '.tmp', canonPath);
+      console.log(`Saved canonical CSV to: ${canonPath}`);
 
       // Mark as processed (seen + label)
       await client.messageFlagsAdd(m.uid, ['\\Seen']);
       try { await client.mailboxCreate(processedLabel); } catch {}
       await client.messageMove(m.uid, processedLabel);
+      console.log(`Moved message to processed label: ${processedLabel}`);
+
+      // Post-move verification: confirm it's under processed label with same Message-ID
+      await client.mailboxOpen(processedLabel);
+      let verified = false;
+      for await (const msg of client.fetch('1:*', { envelope: true })) {
+        if ((msg as any).envelope?.messageId === messageId) {
+          verified = true;
+          break;
+        }
+      }
+      if (!verified) {
+        console.warn('Post-move verification: message not found under processed label by Message-ID');
+      } else {
+        console.log('Post-move verification: message found under processed label');
+      }
 
       return { messageId, savedRawPath: rawPath, canonicalCsvPath: canonPath };
     } finally {

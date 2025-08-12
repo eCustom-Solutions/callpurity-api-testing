@@ -6,7 +6,9 @@
   "scripts": {
     "fetch": "node --loader ts-node/esm src/cli.ts fetch",
     "dry": "node --loader ts-node/esm src/cli.ts dry",
-    "weekly": "node --loader ts-node/esm src/cli.ts weekly"
+    "weekly": "node --loader ts-node/esm src/cli.ts weekly",
+    "list:folders": "node --loader ts-node/esm src/list-folders.ts",
+    "folders": "node --loader ts-node/esm src/cli.ts folders"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
