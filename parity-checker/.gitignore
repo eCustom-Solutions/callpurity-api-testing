@@ -6,6 +6,7 @@ reports/
 logs/
 data/input/
 data/cache/
+data/inbox/raw/
 
 # keep samples tracked
 !data/samples/
