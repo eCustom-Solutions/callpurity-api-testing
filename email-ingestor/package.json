@@ -1,0 +1,23 @@
+{
+  "name": "email-ingestor",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/cli.ts",
+  "scripts": {
+    "fetch": "node --loader ts-node/esm src/cli.ts fetch",
+    "dry": "node --loader ts-node/esm src/cli.ts dry",
+    "weekly": "node --loader ts-node/esm src/cli.ts weekly"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "imapflow": "^1.0.164",
+    "csv-parse": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
+
+
