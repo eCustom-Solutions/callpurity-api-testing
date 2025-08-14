@@ -1,0 +1,30 @@
+{
+  "name": "callpurity-api-testing",
+  "version": "1.0.0",
+  "description": "CallPurity API testing and automation tools",
+  "type": "module",
+  "workspaces": [
+    "sdk",
+    "parity-checker", 
+    "email-ingestor"
+  ],
+  "scripts": {
+    "orchestrator": "node orchestrator.js",
+    "fetch": "node orchestrator.js fetch",
+    "dry": "node orchestrator.js dry",
+    "weekly": "node orchestrator.js weekly",
+    "status": "node orchestrator.js status",
+    "help": "node orchestrator.js help",
+    "parity:dry": "cd parity-checker && npm run sync:dry",
+    "parity:apply": "cd parity-checker && npm run sync:apply",
+    "parity:export": "cd parity-checker && npm run export:dids",
+    "parity:verify": "cd parity-checker && npm run verify:dids",
+    "sdk:test": "cd sdk && npm test",
+    "sdk:build": "cd sdk && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.20.4",
+    "typescript": "^5.0.0"
+  }
+}
