@@ -1,6 +1,15 @@
 import { ImapFlow } from 'imapflow';
 import fs from 'fs/promises';
 import path from 'path';
+// Defer importing mailparser to runtime to avoid ESM interop issues with ts-node/esm
+let simpleParserFn: any | null = null;
+async function getSimpleParser(): Promise<any> {
+  if (!simpleParserFn) {
+    const mod: any = await import('mailparser');
+    simpleParserFn = mod.simpleParser || mod.default?.simpleParser || mod;
+  }
+  return simpleParserFn;
+}
 
 type FetchResult = {
   messageId: string;
@@ -46,39 +55,23 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
       await fs.writeFile(rawPath, m.source);
       console.log(`Saved raw email to: ${rawPath}`);
 
-      // Extract first CSV attachment if present (robust heuristic)
-      const bs: any = m.bodyStructure;
-      const parts = flattenParts(bs);
-      const getFilename = (p: any): string =>
-        String(
-          p?.disposition?.params?.filename ||
-          p?.dispositionParameters?.filename ||
-          p?.params?.name ||
-          p?.parameters?.name ||
-          ''
-        ).toLowerCase();
-      const isCsvPart = (p: any): boolean => {
-        const filename = getFilename(p);
-        const disp = String(p?.disposition?.type || p?.disposition || '').toLowerCase();
-        const type = String(p?.type || '').toLowerCase();
-        const subtype = String(p?.subtype || '').toLowerCase();
-        const isAttachment = disp.includes('attachment');
-        const isCsvFilename = filename.endsWith('.csv');
-        const isCsvMime = type === 'text' && subtype === 'csv';
-        return (isAttachment && isCsvFilename) || isCsvMime || isCsvFilename;
-      };
-      const csvPart = parts.find(isCsvPart);
-      if (!csvPart) return { messageId, savedRawPath: rawPath };
+      // Extract CSV attachment by parsing raw EML to avoid MIME part id ambiguity
+      const simpleParser = await getSimpleParser();
+      const parsed = await simpleParser(m.source as any);
+      const csvAttachment = (parsed as any).attachments?.find((att: any) => {
+        const name = (att.filename || '').toLowerCase();
+        const isCsvName = name.endsWith('.csv');
+        const isCsvMime = (att.contentType || '').toLowerCase() === 'text/csv';
+        return isCsvName || isCsvMime;
+      });
+      if (!csvAttachment) return { messageId, savedRawPath: rawPath };
 
       const canonicalDir = path.join(parityRoot, 'data', 'input', 'astrid');
       await fs.mkdir(canonicalDir, { recursive: true });
       const canonPath = path.join(canonicalDir, `${toTs(tsDate)}_${sanitize(messageId)}.csv`);
-      const partId: any = (csvPart as any).part || (csvPart as any).partId || (csvPart as any).id || undefined;
-      if (!partId) {
-        throw new Error('CSV part found but missing part identifier');
-      }
-      const { content } = await client.download(m.uid, partId);
-      const buf = await streamToBuffer(content);
+      const buf = Buffer.isBuffer(csvAttachment.content)
+        ? (csvAttachment.content as Buffer)
+        : Buffer.from(csvAttachment.content as any);
       await fs.writeFile(canonPath + '.tmp', buf);
       await fs.rename(canonPath + '.tmp', canonPath);
       console.log(`Saved canonical CSV to: ${canonPath}`);
