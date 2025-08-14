@@ -1,119 +1,256 @@
-# CallPurity API Testing
+# CallPurity API Testing & Automation
 
-This project contains a complete, production-ready CallPurity SDK for API testing and development.
+A comprehensive toolkit for testing, validating, and automating CallPurity API operations, including DID (Direct Inward Dialing) management and synchronization.
 
-## Project Structure
+## 🏗️ Architecture
 
-- `sdk/` - The complete CallPurity SDK implementation
-  - `modules/` - SDK modules (auth, accounts, organizations, dids)
-  - `scripts/` - Utility scripts
-    - `bootstrap-discovery.ts` - Auto-discover account/org IDs for testing
-  - `test/` - Test suite
-    - `unit/` - Unit tests for all modules
-    - `integration/` - Integration tests (real API calls)
-    - `TEST_RESULTS.unit.md` - Unit test results
-    - `TEST_RESULTS.integration.md` - Integration test results
-  - `utils/` - Utility functions and validators
-  - `client.ts` - Main HTTP client with interceptors
-  - `config.ts` - Configuration and token management
-  - `types.ts` - TypeScript interfaces and types
-  - `index.ts` - SDK entry point with example usage
-- `parity-checker/` - CLI tool for comparing CSV phone numbers with CallPurity DIDs
-  - `index.ts` - Main entry point
-  - `reconcile.ts` - Reconciliation logic
-  - `loader/` - Data loading modules
-    - `csv.ts` - CSV file parsing and normalization
-    - `callpurity.ts` - CallPurity API integration via SDK
-  - `writer/` - Output formatting
-    - `stdout.ts` - Human-readable report generation
-  - `package.json` - Dependencies and scripts
-  - `sample_numbers.csv` - Sample data for testing
-- `prompts/` - Development prompts and documentation
-  - `01_environment-setup.txt` - Environment setup instructions
-  - `02_sdk-generation.txt` - SDK generation specifications
-  - `03_integration_test_generation.txt` - Integration test generation specifications
-  - `04_parity_checker_mvp.txt` - Parity checker CLI tool specification
+This repository is organized as a **monorepo** with the following modules:
 
-## Features
+- **📧 Email Ingestor** - Automatically fetches CSV attachments from emails and stages them for processing
+- **🔍 Parity Checker** - Compares source-of-truth CSVs with API state and synchronizes differences
+- **🛠️ SDK** - TypeScript client library for CallPurity API operations
+- **🎯 Root Orchestrator** - Coordinates end-to-end workflows between all modules
 
-### 🔐 Authentication
-- Login with email/password
-- Token refresh functionality
-- Automatic token storage and management
+## 🚀 Quick Start
 
-### 📊 Account Management
-- List all accounts
-- Get account details by ID
+### Prerequisites
 
-### 🏢 Organization Management
-- Create new organizations
-- Get organization details
+- Node.js 18+ 
+- npm 8+
+- CallPurity API credentials
+- Gmail account with app-specific password (for email ingestion)
 
-### 📞 DID Management
-- List DIDs with pagination
-- Add/remove individual DIDs
-- Bulk operations (add/delete multiple DIDs)
-- Branded name support
-
-### 🧪 Testing
-- Comprehensive unit test suite with Vitest
-- Mocked HTTP requests for reliable testing
-- 100% test coverage for core functionality
-- **Integration tests** for real API flows (see below)
-
-### 🔄 Parity Checker CLI
-- Compare CSV phone numbers with CallPurity DIDs
-- Generate dry-run reports of adds/deletes/mismatches
-- Modular architecture with separate loaders and writers
-- Sample data included for testing
-
-## Getting Started
-
-1. Navigate to the SDK directory: `cd sdk`
-2. Install dependencies: `npm install`
-3. Set up environment variables in `.env`:
-   ```
-   EMAIL=your-email@example.com
-   PASSWORD=your-password
-   API_BASE_URL=https://api.callpurity.com/latest
-   # Optional for integration tests:
-   TEST_ACCOUNT_ID=your-test-account-id
-   TEST_ORG_ID=your-test-org-id
-   ```
-4. Run unit tests: `npm run test` or `npm run test:unit`
-5. Run integration tests: `npm run test:int`
-6. **Discover test IDs**: `npm run discover` (auto-finds account/org IDs for testing)
-7. Build the project: `npm run build`
-8. Run the development server: `npm run dev`
-
-## Quick Example
-
-```typescript
-import { CallPuritySDK } from './client.js';
-
-// Login
-await CallPuritySDK.auth.login('user@example.com', 'password');
-
-// List accounts
-const accounts = await CallPuritySDK.accounts.list();
-
-// Add a DID
-await CallPuritySDK.dids.add('account-id', 'org-id', '+1234567890', 'My DID');
-```
-
-## Parity Checker Usage
+### Installation
 
 ```bash
-cd parity-checker
+# Clone the repository
+git clone <repository-url>
+cd callpurity-api-testing
+
+# Install dependencies for all modules
 npm install
-npm start -- --csv sample_numbers.csv --account-id YOUR_ACCOUNT_ID --org-id YOUR_ORG_ID
+
+# Set up environment variables (see Configuration section)
+cp email-ingestor/.env.example email-ingestor/.env
+cp parity-checker/.env.example parity-checker/.env
 ```
 
-## Integration Testing
+## 🎯 Root Orchestrator (Recommended)
 
-- Integration tests are located in `sdk/test/integration/`.
-- They require real API credentials and may modify sandbox data.
-- Results and notes should be logged in `sdk/test/TEST_RESULTS.integration.md` after each run.
-- See `.env.example` for required environment variables.
+The **root orchestrator** provides a unified interface for all workflows:
+
+```bash
+# Core workflow commands
+npm run fetch      # Fetch latest email + stage CSV
+npm run dry        # Fetch + run parity checker dry-run  
+npm run weekly     # Complete workflow: fetch + dry-run + apply + export
+npm run status     # Show orchestrator and module status
+npm run help       # Show available commands
+
+# Direct module access
+npm run parity:dry    # Direct parity checker dry-run
+npm run parity:apply  # Direct parity checker apply
+npm run sdk:test      # Run SDK tests
+```
+
+### Complete Workflow Example
+
+```bash
+# Run the complete automation pipeline
+npm run weekly
+
+# This will:
+# 1. Fetch CSV from Astrid's email
+# 2. Run dry-run to see what would change
+# 3. Apply changes to the API (with safety caps)
+# 4. Export final state for verification
+```
+
+## 📧 Email Ingestor
+
+Automatically fetches CSV attachments from Gmail and stages them for processing.
+
+### Features
+- **IMAP Integration** - Connects to Gmail with app-specific passwords
+- **Smart Filtering** - Only processes emails from allowed senders
+- **CSV Extraction** - Automatically detects and extracts CSV attachments
+- **File Staging** - Organizes files in structured directories
+- **Email Processing** - Marks emails as read and moves to processed labels
+
+### Configuration
+```bash
+# email-ingestor/.env
+EMAIL_HOST=imap.gmail.com
+EMAIL_PORT=993
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_LABEL_INBOX=parity-checker/inbox
+EMAIL_LABEL_PROCESSED=parity-checker/processed
+EMAIL_SENDER_ALLOWLIST=astrid@company.com
+PARITY_ROOT=../parity-checker
+```
+
+### Usage
+```bash
+cd email-ingestor
+npm run fetch      # Fetch and stage latest email
+npm run dry        # Fetch + run parity checker dry-run
+npm run weekly     # Fetch + run parity checker apply
+npm run folders    # List available Gmail labels
+```
+
+## 🔍 Parity Checker
+
+Compares source-of-truth CSVs with current API state and synchronizes differences.
+
+### Features
+- **Smart Comparison** - Identifies additions, deletions, and mismatches
+- **Safety Caps** - Configurable limits for add/delete operations
+- **Second-Pass Verification** - Direct API checks to avoid stale data
+- **Bulk Operations** - Efficient API calls for large changes
+- **Post-Verification** - Confirms changes were applied correctly
+
+### Configuration
+```bash
+# parity-checker/.env
+EMAIL=your-email@company.com
+PASSWORD=your-password
+API_BASE_URL=https://api-lab.callpurity.com/latest
+TEST_ACCOUNT_ID=acc-your-account-id
+TEST_ORG_ID=org-your-org-id
+```
+
+### Usage
+```bash
+cd parity-checker
+npm run sync:dry      # Show what would change (dry-run)
+npm run sync:apply    # Apply changes to API
+npm run export:dids   # Export current API state
+npm run verify:dids   # Verify specific DIDs exist
+```
+
+## 🛠️ SDK
+
+TypeScript client library for CallPurity API operations.
+
+### Features
+- **Authentication** - Handles login and token management
+- **DID Management** - List, get, add, remove, and bulk operations
+- **Account & Organization** - Management operations
+- **Type Safety** - Full TypeScript support
+
+### Usage
+```typescript
+import { CallPuritySDK } from './sdk/client.js';
+
+// Authenticate
+await CallPuritySDK.auth.login(email, password);
+
+// List DIDs
+const dids = await CallPuritySDK.dids.list(accountId, orgId, page, pageSize);
+
+// Add DID
+await CallPuritySDK.dids.add(accountId, orgId, phoneNumber, brandedName);
+```
+
+## 🔄 Complete Workflow
+
+### 1. Email Ingestion
+```bash
+npm run fetch
+# Fetches CSV from Gmail, stages in parity-checker/data/input/astrid/
+```
+
+### 2. Dry-Run Analysis
+```bash
+npm run dry
+# Shows what changes would be made without applying them
+```
+
+### 3. Apply Changes
+```bash
+npm run weekly
+# Complete workflow: fetch + dry-run + apply + export
+```
+
+### 4. Verification
+```bash
+npm run parity:export
+# Exports final API state for verification
+```
+
+## 🛡️ Safety Features
+
+- **Confirmation Required** - Apply operations require `--yes` flag
+- **Safety Caps** - Default max 2000 additions/deletions per run
+- **Second-Pass Verification** - Direct API checks to avoid stale data
+- **Post-Apply Verification** - Confirms all changes were applied
+- **Error Handling** - Comprehensive error handling and logging
+
+## 📁 File Structure
+
+```
+callpurity-api-testing/
+├── orchestrator.js          # Root orchestrator
+├── package.json            # Root package with orchestrator scripts
+├── email-ingestor/         # Email processing module
+│   ├── src/
+│   │   ├── cli.ts         # Email CLI
+│   │   ├── fetch.ts       # Email fetching logic
+│   │   └── orchestrate.ts # Module orchestration
+│   └── .env               # Email configuration
+├── parity-checker/         # DID synchronization module
+│   ├── src/
+│   │   ├── cli.ts         # Parity checker CLI
+│   │   ├── loaders/       # Data loading
+│   │   ├── core/          # Reconciliation logic
+│   │   └── output/        # Output formatters
+│   └── .env               # API configuration
+├── sdk/                    # API client library
+│   ├── src/
+│   │   ├── client.ts      # Main SDK client
+│   │   └── modules/       # API modules
+│   └── package.json
+└── README.md               # This file
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **API 500 Errors** - Check environment variables and API credentials
+2. **IMAP Connection Issues** - Verify Gmail app-specific password
+3. **TypeScript Errors** - Ensure Node.js 18+ and proper ESM setup
+4. **Permission Errors** - Check file permissions and directory access
+
+### Debug Commands
+
+```bash
+# Check orchestrator status
+npm run status
+
+# Test email connection
+npm run orchestrator:folders
+
+# Test parity checker directly
+npm run parity:dry
+
+# Check module versions
+npm run status
+```
+
+## 🤝 Contributing
+
+1. **Fork** the repository
+2. **Create** a feature branch
+3. **Make** your changes
+4. **Test** thoroughly
+5. **Submit** a pull request
+
+## 📄 License
+
+[Add your license information here]
 
 ---
+
+**🎯 The root orchestrator provides a single command interface for the complete workflow from email ingestion to API synchronization!**

@@ -18,19 +18,36 @@ type FetchResult = {
 };
 
 export async function fetchLatestAndStage(): Promise<FetchResult | null> {
-  const host = process.env.EMAIL_HOST!;
+  // Check required environment variables
+  const host = process.env.EMAIL_HOST;
   const port = Number(process.env.EMAIL_PORT || 993);
-  const user = process.env.EMAIL_USER!;
-  const pass = process.env.EMAIL_PASS!;
-  const inboxLabel = process.env.EMAIL_LABEL_INBOX!;
-  const processedLabel = process.env.EMAIL_LABEL_PROCESSED || 'Processed';
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  const inboxLabel = process.env.EMAIL_LABEL_INBOX || 'parity-checker/inbox';
+  const processedLabel = process.env.EMAIL_LABEL_PROCESSED || 'parity-checker/processed';
   const allowedSenders = (process.env.EMAIL_SENDER_ALLOWLIST || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   const parityRoot = process.env.PARITY_ROOT || path.resolve(process.cwd(), '../parity-checker');
 
-  const client = new ImapFlow({ host, port, secure: true, auth: { user, pass } });
+  if (!host || !user || !pass) {
+    throw new Error('Missing required environment variables: EMAIL_HOST, EMAIL_USER, EMAIL_PASS');
+  }
+
+  console.log(`Connecting to ${host}:${port} as ${user}`);
+  console.log(`Inbox label: ${inboxLabel}`);
+  console.log(`Processed label: ${processedLabel}`);
+
+  const client = new ImapFlow({ host, port, secure: true, auth: { user, pass }, logger: false });
   await client.connect();
   try {
-    await client.mailboxOpen(inboxLabel);
+    // Check if inbox label exists, create if it doesn't
+    try {
+      await client.mailboxOpen(inboxLabel);
+    } catch (err) {
+      console.log(`Creating inbox label: ${inboxLabel}`);
+      await client.mailboxCreate(inboxLabel);
+      await client.mailboxOpen(inboxLabel);
+    }
+
     const lock = await client.getMailboxLock(inboxLabel);
     try {
       // Fetch all messages in the label (read-agnostic), newest first
@@ -38,14 +55,28 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
       for await (const msg of client.fetch('1:*', { envelope: true, bodyStructure: true, source: true })) {
         msgs.push(msg);
       }
-      if (msgs.length === 0) return null;
+      if (msgs.length === 0) {
+        console.log('No messages found in inbox');
+        return null;
+      }
+      
       msgs.sort((a, b) => (b.internalDate as any) - (a.internalDate as any));
+      console.log(`Found ${msgs.length} messages, processing newest first`);
+      
       // Find the most recent message that matches sender allowlist (if provided)
       const m = msgs.find(mm => {
         const fromAddr = (mm.envelope.from?.[0]?.address || '').toLowerCase();
-        return allowedSenders.length ? allowedSenders.includes(fromAddr) : true;
+        const matches = allowedSenders.length ? allowedSenders.includes(fromAddr) : true;
+        if (matches) {
+          console.log(`Processing message from: ${fromAddr}`);
+        }
+        return matches;
       });
-      if (!m) return null;
+      
+      if (!m) {
+        console.log('No messages from allowed senders found');
+        return null;
+      }
 
       const messageId = m.envelope.messageId || String(m.uid);
       const tsDate: Date = (m.internalDate as Date) || (m.envelope.date ? new Date(m.envelope.date) : new Date());
@@ -64,7 +95,13 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
         const isCsvMime = (att.contentType || '').toLowerCase() === 'text/csv';
         return isCsvName || isCsvMime;
       });
-      if (!csvAttachment) return { messageId, savedRawPath: rawPath };
+      
+      if (!csvAttachment) {
+        console.log('No CSV attachment found in message');
+        return { messageId, savedRawPath: rawPath };
+      }
+
+      console.log(`Found CSV attachment: ${csvAttachment.filename}`);
 
       const canonicalDir = path.join(parityRoot, 'data', 'input', 'astrid');
       await fs.mkdir(canonicalDir, { recursive: true });
@@ -78,7 +115,9 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
 
       // Mark as processed (seen + label)
       await client.messageFlagsAdd(m.uid, ['\\Seen']);
-      try { await client.mailboxCreate(processedLabel); } catch {}
+      try { 
+        await client.mailboxCreate(processedLabel); 
+      } catch {}
       await client.messageMove(m.uid, processedLabel);
       console.log(`Moved message to processed label: ${processedLabel}`);
 
