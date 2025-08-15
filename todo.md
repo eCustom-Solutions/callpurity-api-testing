@@ -8,13 +8,13 @@ This document outlines the cleanup and improvement tasks needed to bring the rep
 ## 🗂️ **1. Repository Cleanup Tasks**
 
 ### **1.1 Remove Obsolete Directories & Files**
-- [ ] **Remove `prompts/` folder** - Contains old development prompts that are no longer needed
+- [x] **Remove `prompts/` folder** - Contains old development prompts that are no longer needed
   - `01_environment-setup.txt` (0.0B, empty file)
   - `02_sdk-generation.txt` (3.6KB)
   - `03_integration_test_generation.txt` (7.0KB)
   - `04_parity_checker_mvp.txt` (0.0B, empty file)
 
-- [ ] **Clean up root-level temporary files**
+- [x] **Clean up root-level temporary files**
   - `compare_datasets.js` - One-time analysis script
   - `dataset_comparison.json` - One-time analysis output
   - `api_current_dids_actual.csv` - One-time export
@@ -232,10 +232,10 @@ await client.messageFlagsAdd(m.uid, ['\\Seen']);     // Mark as read
 - Logging infrastructure
 - Error handling standardization
 
-### **Ready for Removal** 🗑️
-- Prompts folder
-- Temporary analysis files
-- Duplicate TODO files
+### **Cleanup Progress** 🧹
+- ~~Prompts folder~~ ✅ **COMPLETED**
+- ~~Temporary analysis files~~ ✅ **COMPLETED**
+- Duplicate TODO files (next priority)
 - Development test files
 
 ---
