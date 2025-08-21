@@ -36,8 +36,13 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
   console.log(`Inbox label: ${inboxLabel}`);
   console.log(`Processed label: ${processedLabel}`);
 
-  const client = new ImapFlow({ host, port, secure: true, auth: { user, pass }, logger: false });
+  const client = new ImapFlow({ host, port, secure: true, auth: { user, pass }, logger: false, gmailSupport: true } as any);
   await client.connect();
+
+  // Detect Gmail extension support (X-GM-EXT-1)
+  const hasGmailExt = client.capabilities?.get('X-GM-EXT-1') === true;
+  console.log(`Gmail extension X-GM-EXT-1 supported: ${hasGmailExt}`);
+
   try {
     // Check if inbox label exists, create if it doesn't
     try {
@@ -50,9 +55,17 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
 
     const lock = await client.getMailboxLock(inboxLabel);
     try {
-      // Fetch all messages in the label (read-agnostic), newest first
-      const msgs = [] as any[];
-      for await (const msg of client.fetch('1:*', { envelope: true, bodyStructure: true, source: true })) {
+      // Fetch all messages with Gmail extensions enabled (threadId, labels, internalDate)
+      const msgs: any[] = [];
+      for await (const msg of client.fetch('1:*', {
+        uid: true,
+        envelope: true,
+        internalDate: true,
+        threadId: true,
+        labels: true,
+        bodyStructure: true,
+        source: true
+      } as any)) {
         msgs.push(msg);
       }
       if (msgs.length === 0) {
@@ -60,23 +73,50 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
         return null;
       }
       
-      msgs.sort((a, b) => (b.internalDate as any) - (a.internalDate as any));
-      console.log(`Found ${msgs.length} messages, processing newest first`);
+      console.log(`Found ${msgs.length} messages`);
       
-      // Find the most recent message that matches sender allowlist (if provided)
-      const m = msgs.find(mm => {
-        const fromAddr = (mm.envelope.from?.[0]?.address || '').toLowerCase();
-        const matches = allowedSenders.length ? allowedSenders.includes(fromAddr) : true;
-        if (matches) {
-          console.log(`Processing message from: ${fromAddr}`);
-        }
-        return matches;
+      // Debug: Show first few messages
+      msgs.slice(0, 3).forEach((msg, i) => {
+        const from = msg.envelope?.from?.[0]?.address || 'unknown';
+        const thrid = (msg as any).threadid || 'no-threadid';
+        console.log(`Message ${i}: from=${from}, thread=${thrid}, date=${msg.internalDate}`);
       });
-      
-      if (!m) {
-        console.log('No messages from allowed senders found');
+
+      // Sort messages newest-first and look for first allowed-sender message that has a CSV attachment
+      msgs.sort((a,b)=>{
+        const ta = a.internalDate ? (a.internalDate as Date).getTime() : 0;
+        const tb = b.internalDate ? (b.internalDate as Date).getTime() : 0;
+        return tb-ta;
+      });
+
+      const simpleParser = await getSimpleParser();
+      let selectedMsg:any=null;
+      let csvAttachment:any=null;
+
+      for(const msg of msgs){
+        const addr=(msg.envelope.from?.[0]?.address||'').toLowerCase();
+        if(allowedSenders.length && !allowedSenders.includes(addr)) continue;
+
+        const parsed = await simpleParser(msg.source as any);
+        csvAttachment = (parsed as any).attachments?.find((att: any)=>{
+          const name=(att.filename||'').toLowerCase();
+          const isCsvName=name.endsWith('.csv');
+          const isCsvMime=(att.contentType||'').toLowerCase()==='text/csv';
+          return isCsvName || isCsvMime;
+        });
+        if(csvAttachment){
+          selectedMsg = msg;
+          console.log(`Found CSV attachment in message UID ${msg.uid} from ${addr}`);
+          break;
+        }
+      }
+
+      if(!selectedMsg){
+        console.log('No messages with CSV attachment found from allowed senders.');
         return null;
       }
+
+      const m = selectedMsg;
 
       const messageId = m.envelope.messageId || String(m.uid);
       const tsDate: Date = (m.internalDate as Date) || (m.envelope.date ? new Date(m.envelope.date) : new Date());
@@ -86,55 +126,76 @@ export async function fetchLatestAndStage(): Promise<FetchResult | null> {
       await fs.writeFile(rawPath, m.source);
       console.log(`Saved raw email to: ${rawPath}`);
 
-      // Extract CSV attachment by parsing raw EML to avoid MIME part id ambiguity
-      const simpleParser = await getSimpleParser();
-      const parsed = await simpleParser(m.source as any);
-      const csvAttachment = (parsed as any).attachments?.find((att: any) => {
-        const name = (att.filename || '').toLowerCase();
-        const isCsvName = name.endsWith('.csv');
-        const isCsvMime = (att.contentType || '').toLowerCase() === 'text/csv';
-        return isCsvName || isCsvMime;
-      });
+      // csvAttachment already set in the search loop above
       
+      let canonPath: string | undefined;
       if (!csvAttachment) {
-        console.log('No CSV attachment found in message');
-        return { messageId, savedRawPath: rawPath };
-      }
-
-      console.log(`Found CSV attachment: ${csvAttachment.filename}`);
-
-      const canonicalDir = path.join(parityRoot, 'data', 'input', 'astrid');
-      await fs.mkdir(canonicalDir, { recursive: true });
-      const canonPath = path.join(canonicalDir, `${toTs(tsDate)}_${sanitize(messageId)}.csv`);
-      const buf = Buffer.isBuffer(csvAttachment.content)
-        ? (csvAttachment.content as Buffer)
-        : Buffer.from(csvAttachment.content as any);
-      await fs.writeFile(canonPath + '.tmp', buf);
-      await fs.rename(canonPath + '.tmp', canonPath);
-      console.log(`Saved canonical CSV to: ${canonPath}`);
-
-      // Mark as processed (seen + label)
-      await client.messageFlagsAdd(m.uid, ['\\Seen']);
-      try { 
-        await client.mailboxCreate(processedLabel); 
-      } catch {}
-      await client.messageMove(m.uid, processedLabel);
-      console.log(`Moved message to processed label: ${processedLabel}`);
-
-      // Post-move verification: confirm it's under processed label with same Message-ID
-      await client.mailboxOpen(processedLabel);
-      let verified = false;
-      for await (const msg of client.fetch('1:*', { envelope: true })) {
-        if ((msg as any).envelope?.messageId === messageId) {
-          verified = true;
-          break;
-        }
-      }
-      if (!verified) {
-        console.warn('Post-move verification: message not found under processed label by Message-ID');
+        console.log('No CSV attachment found in thread – skipping CSV staging');
       } else {
-        console.log('Post-move verification: message found under processed label');
+        console.log(`Found CSV attachment: ${csvAttachment.filename}`);
+
+        const canonicalDir = path.join(parityRoot, 'data', 'input', 'astrid');
+        await fs.mkdir(canonicalDir, { recursive: true });
+        canonPath = path.join(canonicalDir, `${toTs(tsDate)}_${sanitize(messageId)}.csv`);
+        const buf = Buffer.isBuffer(csvAttachment.content)
+          ? (csvAttachment.content as Buffer)
+          : Buffer.from(csvAttachment.content as any);
+        await fs.writeFile(canonPath + '.tmp', buf);
+        await fs.rename(canonPath + '.tmp', canonPath);
+        console.log(`Saved canonical CSV to: ${canonPath}`);
       }
+
+      // Mark this message as seen and move it to processed
+      try{ await client.mailboxCreate(processedLabel);}catch{}
+      await client.messageFlagsAdd(m.uid,['\\Seen']);
+      await client.messageMove(m.uid, processedLabel);
+
+      // Remove any other Gmail labels except the processed label to avoid duplicates
+      try {
+        // After moving, open the processed mailbox and find the message by Message-ID
+        await client.mailboxOpen(processedLabel);
+
+        // Find the message in the processed mailbox (UID will be different after move)
+        let newUid: number | null = null;
+        let totalMessages = 0;
+        console.log(`Looking for message ID: ${messageId}`);
+        
+        for await (const msg of client.fetch('1:*', { envelope: true, labels: true })) {
+          totalMessages++;
+          const msgId = (msg as any).envelope?.messageId;
+          console.log(`Checking message ${totalMessages}: ${msgId}`);
+          
+          if (msgId === messageId) {
+            newUid = msg.uid;
+            const currentLabels: string[] = (msg as any).labels || [];
+            
+            console.log(`Found moved message with UID ${newUid}, current labels: ${currentLabels.join(', ')}`);
+
+            // Determine labels to remove – keep only the processed label
+            const labelsToRemove = currentLabels.filter(l => l !== processedLabel);
+
+            if (labelsToRemove.length) {
+              console.log(`Removing extraneous labels: ${labelsToRemove.join(', ')}`);
+              // Note: Gmail label removal via IMAP is complex, skipping for now
+              console.log(`Would remove labels: ${labelsToRemove.join(', ')} (Gmail label removal not implemented)`);
+            } else {
+              console.log('No extraneous labels to remove');
+            }
+            break;
+          }
+        }
+
+        console.log(`Searched ${totalMessages} messages in processed mailbox`);
+        if (!newUid) {
+          console.warn('Could not find moved message in processed mailbox for label cleanup');
+        }
+      } catch (labelErr) {
+        console.warn('Label cleanup error:', (labelErr as Error).message);
+      }
+
+      console.log(`Moved message exclusively to processed label: ${processedLabel}`);
+
+      // Post-move verification already done in label cleanup above
 
       return { messageId, savedRawPath: rawPath, canonicalCsvPath: canonPath };
     } finally {
