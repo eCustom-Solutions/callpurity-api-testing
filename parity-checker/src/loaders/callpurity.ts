@@ -1,5 +1,6 @@
 import { CallPuritySDK } from '../../../sdk/client.js';
 import dotenv from 'dotenv';
+import { normalizeToDidNumber } from '../utils/normalize.js';
 import type { NumberEntry } from '../core/types.js';
 
 dotenv.config();
@@ -33,13 +34,6 @@ export async function loadCallPurityDIDs(accountId?: string, orgId?: string): Pr
     dids = dids.concat(pageDids as NumberEntry[]);
   }
   return dids;
-}
-
-function normalizeToDidNumber(input: string): string | null {
-  if (!input) return null;
-  const digits = String(input).replace(/\D/g, '');
-  const ten = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
-  return /^[2-9]\d{9}$/.test(ten) ? ten : null;
 }
 
 

@@ -49,7 +49,7 @@ class CallPurityOrchestrator {
 
   async runParityDry() {
     console.log('\n🔍 STEP 2: Running parity checker dry-run...');
-    await this.runCommand('npm', ['run', 'sync:dry'], this.parityCheckerDir, 'Parity checker dry-run');
+    await this.runCommand('npm', ['run', 'sync:dry', '--', '--skip-verification'], this.parityCheckerDir, 'Parity checker dry-run');
   }
 
   async runParityApply(maxAdd = 2000, maxDelete = 2000) {
@@ -60,6 +60,8 @@ class CallPurityOrchestrator {
       '--max-add', maxAdd.toString(),
       '--max-delete', maxDelete.toString()
     ];
+    console.log(`🔍 Debug: Passing arguments: ${JSON.stringify(args)}`);
+    console.log(`🔍 Debug: maxAdd=${maxAdd}, maxDelete=${maxDelete}`);
     await this.runCommand('npm', args, this.parityCheckerDir, 'Parity checker apply');
   }
 
@@ -151,8 +153,8 @@ async function main() {
     case 'weekly':
       await orchestrator.runCompleteWorkflow({ 
         dryRunOnly: false, 
-        maxAdd: 2000, 
-        maxDelete: 2000 
+        maxAdd: 10,        // ✅ Conservative safety cap for testing
+        maxDelete: 10      // ✅ Conservative safety cap for testing
       });
       break;
       

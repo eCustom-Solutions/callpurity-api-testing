@@ -4,13 +4,15 @@ import { loadCallPurityDIDs } from './loaders/callpurity.js';
 import { reconcile } from './core/reconcile.js';
 import { writeStdout } from './output/stdout.js';
 import { writeJson } from './output/json.js';
+import { normalizeToDidNumber } from './utils/normalize.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { CallPuritySDK } from '../../sdk/client.js';
 import type { NumberEntry, ReconcileResult } from './core/types.js';
 
 function parseArgs(argv: string[]) {
-  const options: { csvPath?: string; jsonPath?: string; accountId?: string; orgId?: string; apply?: boolean; yes?: boolean; maxAdd?: number; maxDelete?: number; verifyBeforeApply?: boolean } = {};
+  const options: { csvPath?: string; jsonPath?: string; accountId?: string; orgId?: string; apply?: boolean; yes?: boolean; maxAdd?: number; maxDelete?: number; verifyBeforeApply?: boolean; skipVerification?: boolean } = {};
+  console.log(`🔍 Debug: Parsing arguments: ${JSON.stringify(argv)}`);
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--csv') options.csvPath = argv[++i];
@@ -22,7 +24,9 @@ function parseArgs(argv: string[]) {
     else if (arg === '--max-add') options.maxAdd = parseInt(argv[++i], 10);
     else if (arg === '--max-delete') options.maxDelete = parseInt(argv[++i], 10);
     else if (arg === '--verify-before-apply') options.verifyBeforeApply = true;
+    else if (arg === '--skip-verification') options.skipVerification = true;
   }
+  console.log(`🔍 Debug: Parsed options: ${JSON.stringify(options)}`);
   return options;
 }
 
@@ -38,7 +42,11 @@ async function main() {
   // Apply-first flow: skip verification unless explicitly requested
   if (!args.apply || args.verifyBeforeApply) {
     // Second-pass verification using direct GET checks to avoid list staleness
-    diff = await filterDiffWithDirectChecks(diff, args.accountId, args.orgId);
+    if (!args.skipVerification) {
+      diff = await filterDiffWithDirectChecks(diff, args.accountId, args.orgId);
+    } else {
+      console.log('⚠️  Skipping second-pass verification (--skip-verification)');
+    }
   }
   writeStdout(diff);
   const defaultJson = path.join('reports', 'json', 'diff.sandbox.json');
@@ -71,21 +79,49 @@ main().catch(err => {
 async function resolveDefaultCsv(): Promise<string> {
   const inputDir = path.join('data', 'input');
   const samplesCsv = path.join('data', 'samples', 'sample_numbers.csv');
+  
   try {
+    // Check main input directory
     const entries = await fs.readdir(inputDir, { withFileTypes: true });
-    const csvFiles = entries
+    let csvFiles: string[] = [];
+    
+    // Add files from main input directory
+    const mainDirFiles = entries
       .filter(e => e.isFile() && e.name.toLowerCase().endsWith('.csv'))
       .map(e => path.join(inputDir, e.name));
+    csvFiles.push(...mainDirFiles);
+    
+    // Check subdirectories (like astrid/)
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        try {
+          const subDir = path.join(inputDir, entry.name);
+          const subEntries = await fs.readdir(subDir, { withFileTypes: true });
+          const subDirFiles = subEntries
+            .filter(e => e.isFile() && e.name.toLowerCase().endsWith('.csv'))
+            .map(e => path.join(subDir, e.name));
+          csvFiles.push(...subDirFiles);
+        } catch (err) {
+          // Skip subdirectories we can't read
+          continue;
+        }
+      }
+    }
+    
     if (csvFiles.length > 0) {
       const stats = await Promise.all(csvFiles.map(async f => ({ f, s: await fs.stat(f) })));
       stats.sort((a, b) => b.s.mtimeMs - a.s.mtimeMs);
+      console.log(`🔍 CSV Resolution: Found ${csvFiles.length} CSV files, using most recent: ${stats[0].f}`);
       return stats[0].f;
     }
-  } catch {
+  } catch (err) {
+    console.log(`🔍 CSV Resolution: Error reading input directory: ${err}`);
     // fall through to samples
   }
+  
   try {
     await fs.access(samplesCsv);
+    console.log(`🔍 CSV Resolution: Falling back to sample file: ${samplesCsv}`);
     return samplesCsv;
   } catch {
     throw new Error(
@@ -100,6 +136,7 @@ async function applyChangesOrExit(
   orgIdArg?: string,
   opts?: { requireYes?: boolean; maxAdd?: number; maxDelete?: number }
 ): Promise<void> {
+  console.log(`🔍 Debug: applyChangesOrExit called with opts: ${JSON.stringify(opts)}`);
   const email = process.env.EMAIL;
   const password = process.env.PASSWORD;
   const accountId = accountIdArg || process.env.TEST_ACCOUNT_ID;
@@ -109,6 +146,7 @@ async function applyChangesOrExit(
   }
   const numAdds = diff.toAdd.length;
   const numDeletes = diff.toDelete.length;
+  console.log(`🔍 Debug: Checking limits: toAdd=${numAdds}, toDelete=${numDeletes}, maxAdd=${opts?.maxAdd}, maxDelete=${opts?.maxDelete}`);
   if (opts?.maxAdd !== undefined && numAdds > opts.maxAdd) {
     throw new Error(`Aborting: toAdd=${numAdds} exceeds --max-add=${opts.maxAdd}`);
   }
@@ -125,7 +163,16 @@ async function applyChangesOrExit(
   if (numAdds > 0) {
     console.log(`Applying adds: total ${numAdds} (chunk size 100)`);
     const chunks = chunk(
-      diff.toAdd.map(n => ({ number: normalizeToDidNumber(n.number), branded_name: n.brandedName })),
+      diff.toAdd
+        .map(n => ({ 
+          number: normalizeToDidNumber(n.number), 
+          branded_name: n.brandedName 
+        }))
+        .filter(item => item.number !== null)
+        .map(item => ({ 
+          number: item.number as string, 
+          branded_name: item.branded_name 
+        })),
       100
     );
     for (let i = 0; i < chunks.length; i++) {
@@ -140,7 +187,10 @@ async function applyChangesOrExit(
   if (numDeletes > 0) {
     console.log(`Applying deletes: total ${numDeletes} (chunk size 100)`);
     const chunks = chunk(
-      diff.toDelete.map(n => ({ number: normalizeToDidNumber(n.number) })),
+      diff.toDelete
+        .map(n => ({ number: normalizeToDidNumber(n.number) }))
+        .filter(item => item.number !== null)
+        .map(item => ({ number: item.number as string })),
       100
     );
     for (let i = 0; i < chunks.length; i++) {
@@ -156,15 +206,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
-}
-
-function normalizeToDidNumber(input: string): string {
-  const digits = input.replace(/\D/g, '');
-  const normalized = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
-  if (!/^([2-9])\d{9}$/.test(normalized)) {
-    throw new Error(`Invalid DID number after normalization: ${input}`);
-  }
-  return normalized;
 }
 
 async function filterDiffWithDirectChecks(
